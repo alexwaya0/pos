@@ -1,68 +1,208 @@
+{% load static %}
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>{{ request.site.name|default: "Pharmacy POS" }} - {% block title %}{% endblock %}</title>
+  <title>{% firstof request.site.name "Pharmacy POS" %} - {% block title %}{% endblock %}</title>
 
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Brand theme (dark green + gold) -->
   <style>
-    :root {
-      --primary: {{ settings.POS_THEME.PRIMARY }};
-      --accent: {{ settings.POS_THEME.ACCENT }};
+    :root{
+      --darkgreen: #064420; /* team dark green */
+      --gold: #D4AF37;      /* gold */
+      --gold-dark: #b8962c;
+      --panel-bg: #ffffff;
+      --muted: #6b7280;
     }
-    .brand-bg { background-color: var(--primary); }
-    .brand-accent { color: var(--accent); }
-    .sidebar { background: linear-gradient(180deg, var(--primary), #082a21); }
+
+    /* Basic page */
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: #f3f4f6; color: #111827; }
+
+    /* Sidebar */
+    .app-sidebar {
+      min-height: 100vh;
+      width: 290px;
+      background: linear-gradient(180deg, var(--darkgreen), #0b3a2b);
+      color: var(--gold);
+      padding: 1.25rem;
+      box-sizing: border-box;
+    }
+    .app-sidebar .brand { display:flex; gap:.75rem; align-items:center; margin-bottom:1.25rem; }
+    .app-sidebar .brand .logo {
+      width:44px; height:44px; border-radius:10px;
+      background: rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center;
+      font-weight:700; font-size:18px;
+    }
+    .nav-link {
+      display:flex; align-items:center; gap:.75rem; padding:.6rem .75rem; border-radius:.5rem;
+      color:var(--gold); text-decoration:none; font-weight:500;
+    }
+    .nav-link:hover { background: rgba(255,255,255,0.04); }
+
+    /* Active/selected style helper (you can toggle this via template logic if desired) */
+    .nav-link.active { background: rgba(255,255,255,0.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
+
+    /* Main content */
+    .app-main { flex:1; padding:1.5rem; }
+
+    /* Topbar */
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+    .topbar .user { display:flex; gap:.75rem; align-items:center; color:var(--muted); }
+
+    /* Buttons */
+    .btn-primary {
+      background:var(--gold); color:var(--darkgreen); padding:.5rem .9rem; border-radius:.5rem; font-weight:700;
+    }
+    .btn-primary:hover { background:var(--gold-dark); }
+
+    /* Flash messages */
+    .flash-container { position:relative; z-index:50; margin-bottom: 1rem; }
+    .flash {
+      display:flex; justify-content:space-between; gap:1rem; align-items:flex-start;
+      padding:.85rem 1rem; border-radius:.5rem; box-shadow: 0 6px 18px rgba(15,23,42,.06);
+      background:var(--gold); color:var(--darkgreen);
+    }
+    .flash .close {
+      background:transparent; border:0; font-size:1rem; cursor:pointer; color:var(--darkgreen);
+    }
+
+    /* Make flash fade out smoothly before removal */
+    .fade-out { transition: opacity .5s ease, transform .5s ease; opacity:0; transform: translateY(-6px); }
+
+    /* Panels */
+    .panel { background:var(--panel-bg); border-radius:.5rem; padding:1rem; box-shadow: 0 6px 18px rgba(15,23,42,.04); }
+    .muted { color: var(--muted); font-size:.92rem; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .app-sidebar { display:none; }
+      body { padding:0; }
+    }
   </style>
+
   {% block extra_head %}{% endblock %}
 </head>
-<body class="min-h-screen bg-gray-50 font-sans">
+<body class="flex min-h-screen">
 
-  <div class="flex">
-    {% include 'pos/sidebar.html' %}
-    <div class="flex-1 p-6">
-      <!-- top bar -->
-      <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-semibold text-gray-800">{% block page_title %}Dashboard{% endblock %}</h1>
-        <div class="flex items-center space-x-4">
-          <span class="text-sm text-gray-600">User: {{ request.user.get_username }}</span>
-          <a href="{% url 'pos:logout' %}" class="px-3 py-1 rounded border border-gray-200">Logout</a>
-        </div>
+  <!-- Sidebar -->
+  <aside class="app-sidebar hidden lg:block">
+    <div class="brand">
+      <div class="logo">PH</div>
+      <div>
+        <div class="text-lg font-semibold" style="color:var(--gold)">{% firstof request.site.name "Pharmacy POS" %}</div>
+        <div class="muted" style="color:rgba(255,255,255,0.85); font-size:0.85rem;">Kenya • Cash POS</div>
+      </div>
+    </div>
+
+    <nav class="space-y-1 mt-4">
+      <a class="nav-link" href="{% url 'pos:dashboard' %}">
+        <!-- home icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M3 10l9-7 9 7v8a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg>
+        <span>Dashboard</span>
+      </a>
+
+      <a class="nav-link" href="{% url 'pos:sale_create' %}">
+        <!-- sale icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M3 3h18v4H3zM7 11h10v10H7z"/></svg>
+        <span>New Sale</span>
+      </a>
+
+      <a class="nav-link" href="{% url 'pos:product_list' %}">
+        <!-- products -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M20 13V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6"/></svg>
+        <span>Products</span>
+      </a>
+
+      <a class="nav-link" href="{% url 'pos:product_add' %}">
+        <!-- add product -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M12 4v16m8-8H4"/></svg>
+        <span>Add Product</span>
+      </a>
+
+      <a class="nav-link" href="{% url 'pos:reports' %}">
+        <!-- reports -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M9 17v-6h6v6M4 6h16"/></svg>
+        <span>Reports</span>
+      </a>
+    </nav>
+
+    <div class="mt-8">
+      {% if request.user.is_authenticated %}
+        <form action="{% url 'pos:logout' %}" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn-primary w-full">🚪 Logout</button>
+        </form>
+      {% else %}
+        <a href="{% url 'pos:login' %}" class="btn-primary w-full text-center block">🔐 Login</a>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="app-main">
+    <!-- topbar -->
+    <div class="topbar">
+      <div>
+        <h1 class="text-2xl font-semibold">{% block page_title %}Dashboard{% endblock %}</h1>
+        <p class="muted">Welcome back{% if request.user.is_authenticated %}, {{ request.user.get_username }}{% endif %}</p>
       </div>
 
-      <!-- messages -->
-      {% if messages %}
-        <div id="messages" class="mb-4 space-y-2">
-          {% for message in messages %}
-            <div class="js-notice px-4 py-3 rounded shadow-sm flex justify-between items-start" role="alert"
-                 style="background:#fff;border-left:4px solid var(--primary);">
-              <div>
-                <p class="text-sm font-medium">{{ message.tags|capfirst }}</p>
-                <p class="text-sm">{{ message }}</p>
-              </div>
-              <button class="js-close ml-4 text-gray-500">✕</button>
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
+      <div class="user">
+        {% if request.user.is_authenticated %}
+          <div class="muted">Logged in as <strong class="ml-2">{{ request.user.get_username }}</strong></div>
+        {% else %}
+          <a href="{% url 'pos:login' %}" class="muted">Login</a>
+        {% endif %}
+      </div>
+    </div>
 
+    <!-- flash messages -->
+    <div id="flash-wrap" class="flash-container">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="flash" role="alert" data-timeout="10000">
+            <div>
+              <div class="font-semibold">{{ message.tags|capfirst }}</div>
+              <div class="muted" style="color:var(--darkgreen);">{{ message }}</div>
+            </div>
+            <div>
+              <button class="close" aria-label="Close message">✕</button>
+            </div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- page content -->
+    <div>
       {% block content %}{% endblock %}
     </div>
   </div>
 
+  <!-- JS to auto-remove messages after 10s but allow manual close -->
   <script>
-    // message auto-hide (10s)
     (function(){
-      const autoClose = 10000;
-      const container = document.getElementById('messages');
-      if (!container) return;
-      container.querySelectorAll('.js-notice').forEach(function(el){
-        const timer = setTimeout(()=>{ el.remove(); }, autoClose);
-        const btn = el.querySelector('.js-close');
-        if (btn){
-          btn.addEventListener('click', ()=>{ clearTimeout(timer); el.remove(); });
+      const flashes = Array.from(document.querySelectorAll('.flash'));
+      flashes.forEach((el) => {
+        const timeout = parseInt(el.getAttribute('data-timeout') || '10000', 10);
+        // auto remove after timeout
+        const t = setTimeout(() => {
+          el.classList.add('fade-out');
+          setTimeout(()=>el.remove(), 600);
+        }, timeout);
+
+        // manual close
+        const btn = el.querySelector('.close');
+        if (btn) {
+          btn.addEventListener('click', () => {
+            clearTimeout(t);
+            el.classList.add('fade-out');
+            setTimeout(()=>el.remove(), 300);
+          });
         }
       });
     })();
