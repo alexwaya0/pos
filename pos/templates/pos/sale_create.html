@@ -1,139 +1,429 @@
 {% extends "pos/base.html" %}
-{% block title %}New Sale{% endblock %}
-{% block page_title %}New Sale{% endblock %}
+{% load static %}
+{% block title %}Add Item(s){% endblock %}
+{% block page_title %}Add Item(s{% endblock %}
 
 {% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
 <style>
-  .product-card { cursor: pointer; transition: transform .08s; }
-  .product-card:hover{ transform: translateY(-3px); }
+  /* Color Reference: Teal: #006666, Jungle Green: #1F7A5F, Gold: #D4A017, Red: #FF4500 */
+  
+  body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #f8f9fa; 
+  }
+  /* Card/Jumbotron Style */
+  .card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: none;
+    border-radius: 16px; 
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); 
+    position: relative;
+    padding: 32px; 
+    background: #ffffff;
+    height: 100%; 
+  }
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(0, 102, 102, 0.25);
+  }
+  .form-group {
+    margin-bottom: 24px;
+  }
+  /* Advanced Input Styling (Used for main form fields) */
+  .form-input-control {
+    border: 1px solid #006666; /* TEAL border */
+    border-radius: 8px;
+    padding: 12px 16px;
+    width: 100%;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    font-size: 1rem;
+    line-height: 1.5; 
+  }
+  .form-input-control:focus {
+    border-color: #D4A017; /* Gold focus color */
+    outline: none;
+    box-shadow: 0 0 5px rgba(212, 160, 23, 0.5);
+  }
+  
+  /* --- MODERN TABLE STYLING --- */
+  .table-card-container {
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    overflow: hidden; 
+    margin-bottom: 24px;
+  }
+  .dashboard-table {
+    width: 100%;
+    /* Use border-collapse: collapse to draw continuous borders */
+    border-collapse: collapse; 
+    border-spacing: 0;
+    border: 1px solid #d1d5db; /* Light gray border around the whole table */
+  }
+  .dashboard-table th {
+    background-color: #006666; 
+    color: #ffffff;
+    padding: 14px 12px;
+    font-weight: 600;
+    text-align: left;
+    border: 1px solid #005555; /* Darker border for header separation */
+  }
+  /* Table Row Striping and Hover */
+  .dashboard-table tbody tr:nth-child(odd) {
+    background-color: #F9FAFB; /* Light Gray for odd rows */
+  }
+  .dashboard-table tbody tr:nth-child(even) {
+    background-color: #ffffff; /* White for even rows */
+  }
+  .dashboard-table tbody tr:hover {
+    background-color: #E6F0FA;
+  }
+  .dashboard-table td {
+    padding: 12px;
+    text-align: left;
+    /* Apply borders to all sides of the cell */
+    border: 1px solid #e2e8f0; 
+    vertical-align: middle;
+  }
+  /* Remove the bottom border logic as we now use border: 1px solid */
+  /* .dashboard-table tbody tr:last-child td { border-bottom: none; } */
+
+  /* Custom Styles for Text/Numbers */
+  .item-product-name-cell {
+    color: #006666;
+    font-weight: 500;
+    max-width: 300px; 
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .item-line-total-cell {
+    color: #006666;
+    font-weight: 600;
+    text-align: right !important;
+  }
+
+  /* MODERN TABLE INPUT STYLING */
+  .table-input {
+    background-color: #ffffff;
+    border: 1px solid #c9d6de; 
+    border-radius: 6px; 
+    padding: 8px 10px; 
+    font-size: 0.95rem; 
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    text-align: right;
+  }
+  .table-input:focus {
+    border-color: #D4A017; 
+    outline: none;
+    box-shadow: 0 0 4px rgba(212, 160, 23, 0.4);
+  }
+  /* Enforce field sizing */
+  .price-input {
+      width: 120px; 
+  }
+  .qty-input {
+      width: 80px; 
+  }
+  
+  /* Remove button */
+  .remove-btn {
+    color: #FF4500;
+    transition: color 0.2s ease, transform 0.2s ease;
+  }
+  .remove-btn:hover {
+    color: #CC3700;
+    transform: scale(1.1);
+  }
+  
+  /* Row Placeholder Styling */
+  .row-placeholder-cell {
+      font-style: italic;
+      color: #9ca3af; /* Tailwind gray-400 */
+      padding: 16px 12px; /* Maintain padding consistency */
+      text-align: center;
+      border: 1px solid #e2e8f0; /* Ensure placeholder cell has a border */
+  }
+  .placeholder-product { text-align: left !important; font-weight: 500; }
+  .placeholder-price, .placeholder-total { text-align: right !important; }
+
+  /* Ensure the row placeholder respects alternating colors (it is the first row, so it should be odd) */
+  #empty-row-placeholder {
+      background-color: #F9FAFB !important;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-3 gap-6">
-  <div class="col-span-2">
-    <div class="bg-white p-4 rounded shadow mb-4">
-      <form id="sale-form" method="post">
-        {% csrf_token %}
-        {{ form.branch.label_tag }} {{ form.branch }}
-        <div class="mt-2">
-          <label>Customer phone</label>
-          {{ form.customer_phone }}
-        </div>
-        <div class="mt-2">
-          <label>Customer name</label>
-          {{ form.customer_name }}
-        </div>
-
-        <h3 class="mt-4 font-semibold">Items</h3>
-        <div id="items" class="space-y-2"></div>
-
-        <div class="mt-4">
-          <label>Notes</label>
-          {{ form.notes }}
-        </div>
-
-        <div class="mt-4">
-          <div class="flex items-center space-x-4">
-            <div>Total: <span id="total">KES 0.00</span></div>
-            <button type="button" class="px-3 py-1 bg-yellow-600 text-white rounded" id="add-customer-email">Email Receipt (if email)</button>
-            <button type="submit" class="px-4 py-2 bg-green-800 text-white rounded">Record Sale</button>
+<div class="container mx-auto p-6">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-8"> 
+    
+    <div class="col-span-2">
+      <div class="card sticky top-4" role="region" aria-label="Sale form">
+        <form id="sale-form" method="post" aria-label="Create new sale">
+          {% csrf_token %}
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="form-group mb-0">
+              <h4 class="mb-2 text-base font-medium" style="color: #D4A017;">Branch</h4>
+              <select name="{{ form.branch.name }}" id="{{ form.branch.id_for_label }}" class="form-input-control" aria-label="Select Branch">
+                  {% for value, label in form.branch.field.choices %}
+                      <option value="{{ value }}"{% if value|stringformat:"s" == form.branch.value|stringformat:"s" %} selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+              </select>
+            </div>
+            <div class="form-group mb-0">
+              <label for="{{ form.customer_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Customer Phone</label>
+              <input type="text" name="{{ form.customer_phone.name }}" id="{{ form.customer_phone.id_for_label }}" class="form-input-control" value="{{ form.customer_phone.value|default_if_none:'' }}" placeholder="e.g., 0722123456" aria-label="Customer Phone">
+            </div>
+            <div class="form-group mb-0">
+              <label for="{{ form.customer_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+              <input type="text" name="{{ form.customer_name.name }}" id="{{ form.customer_name.id_for_label }}" class="form-input-control" value="{{ form.customer_name.value|default_if_none:'' }}" placeholder="Customer Name" aria-label="Customer Name">
+            </div>
           </div>
-        </div>
-      </form>
-    </div>
 
-    <div class="bg-white p-4 rounded shadow">
-      <h4 class="font-semibold">Products</h4>
-      <div class="grid grid-cols-3 gap-3 mt-3 max-h-96 overflow-auto">
-        {% for p in products %}
-          <div class="product-card p-3 border rounded" data-id="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ p.price }}" data-min="{{ p.min_price }}">
-            <div class="font-medium">{{ p.name }}</div>
-            <div class="text-sm text-gray-500">KES {{ p.price }}</div>
-            <div class="text-xs text-gray-400">min: KES {{ p.min_price }}</div>
+
+          <h3 class="mt-6 mb-4" style="color: #006666; font-size: 1.25rem; font-weight: 600;">Items</h3>
+          
+          <div class="table-card-container">
+            <table class="dashboard-table" role="grid" aria-label="Sale items">
+              <thead>
+                <tr>
+                  <th scope="col">Product Name</th>
+                  <th scope="col" style="text-align: right;">Unit Price</th>
+                  <th scope="col" style="text-align: right;">Quantity</th>
+                  <th scope="col" style="text-align: right;">Line Total</th>
+                  <th scope="col" style="text-align: center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="items">
+                  <tr id="empty-row-placeholder">
+                      <td class="row-placeholder-cell placeholder-product">
+                          Start adding products...
+                      </td>
+                      <td class="row-placeholder-cell placeholder-price">KES 0.00</td>
+                      <td class="row-placeholder-cell">0</td>
+                      <td class="row-placeholder-cell placeholder-total">KES 0.00</td>
+                      <td class="row-placeholder-cell" style="text-align: center;">-</td>
+                  </tr>
+              </tbody>
+            </table>
           </div>
-        {% endfor %}
+
+          <div class="form-group">
+            <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea name="{{ form.notes.name }}" id="{{ form.notes.id_for_label }}" class="form-input-control" rows="3" placeholder="Any specific notes for this sale..." aria-label="Notes">{{ form.notes.value|default_if_none:'' }}</textarea>
+          </div>
+
+          <div class="mt-6 flex items-center justify-between border-t pt-4">
+            <div class="text-xl font-bold" style="color: #006666;">Total: <span id="total">KES 0.00</span></div>
+            <div class="flex space-x-4">
+              <button type="button" class="px-5 py-2 rounded-lg font-medium transition duration-300 ease-in-out" style="background-color: #D4A017; color: #1a202c;"
+                onmouseover="this.style.backgroundColor='#C19213'; this.style.boxShadow='0 4px 10px rgba(212, 160, 23, 0.4)'; this.style.transform='translateY(-1px)'"
+                onmouseout="this.style.backgroundColor='#D4A017'; this.style.boxShadow='none'; this.style.transform='none';"
+                id="add-customer-email" aria-label="Add email for receipt">Email Receipt (if email)</button>
+
+              <button type="submit" class="px-5 py-2 rounded-lg font-medium transition duration-300 ease-in-out" style="background-color: #006666; color: #ffffff;"
+                onmouseover="this.style.backgroundColor='#1F7A5F'; this.style.boxShadow='0 4px 10px rgba(31, 122, 95, 0.4)'; this.style.transform='translateY(-1px)'"
+                onmouseout="this.style.backgroundColor='#006666'; this.style.boxShadow='none'; this.style.transform='none';"
+                aria-label="Submit sale">Record Sale</button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
-  </div>
 
-  <div>
-    <div class="bg-white p-4 rounded shadow">
-      <h4 class="font-semibold">Quick actions</h4>
-      <div class="mt-4 space-y-2">
-        <a class="block px-3 py-2 bg-blue-600 text-white rounded" href="{% url 'pos:product_add' %}">Add Product</a>
-        <a class="block px-3 py-2 bg-gray-200 rounded" href="{% url 'pos:product_list' %}">Product List</a>
+    <div class="h-full">
+      <div class="card h-full" role="region" aria-label="Quick actions">
+        <h4 class="mb-6" style="color: #006666; font-size: 1.25rem; font-weight: 600;">Quick Actions</h4>
+        <div class="search-container">
+          <input type="text" id="product-search" class="form-input-control" placeholder="Search products..." autocomplete="off" aria-label="Search products">
+          <div class="search-results" id="search-results" role="listbox"></div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  // simple client-side logic to add items to the sale
-  const products = document.querySelectorAll('.product-card');
+  const products = [
+    {% for p in products %}
+      { id: {{ p.id }}, name: "{{ p.name|escapejs }}", price: {{ p.price }}, min_price: {{ p.min_price }} }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  let itemIndex = {% if preselected_product %}1{% else %}0{% endif %};
   const itemsContainer = document.getElementById('items');
   const totalEl = document.getElementById('total');
+  const emptyRowPlaceholderHtml = `
+      <tr id="empty-row-placeholder">
+          <td class="row-placeholder-cell placeholder-product">Start adding products...</td>
+          <td class="row-placeholder-cell placeholder-price">KES 0.00</td>
+          <td class="row-placeholder-cell">0</td>
+          <td class="row-placeholder-cell placeholder-total">KES 0.00</td>
+          <td class="row-placeholder-cell" style="text-align: center;">-</td>
+      </tr>
+  `;
   let total = 0.0;
 
-  function recalc(){
+  function updatePlaceholder() {
+      const currentPlaceholder = document.getElementById('empty-row-placeholder');
+      if (itemsContainer.querySelectorAll('.sale-item').length === 0) {
+          // Show the placeholder if it's missing
+          if (!currentPlaceholder) {
+              itemsContainer.innerHTML = emptyRowPlaceholderHtml;
+          }
+      } else {
+          // Remove the placeholder if it exists and there are items
+          if (currentPlaceholder) {
+              currentPlaceholder.remove();
+          }
+      }
+  }
+
+  function recalc() {
     total = 0;
-    itemsContainer.querySelectorAll('.sale-item').forEach(function(it){
+    itemsContainer.querySelectorAll('.sale-item').forEach(function(it) {
       const price = parseFloat(it.querySelector('.unit-price').value || 0);
-      const qty = parseInt(it.querySelector('.qty').value || 0);
+      const qty = parseInt(it.querySelector('.qty').value || 0, 10);
       const line = price * qty;
       it.querySelector('.line-total').innerText = 'KES ' + line.toFixed(2);
       total += line;
     });
     totalEl.innerText = 'KES ' + total.toFixed(2);
+    updatePlaceholder();
   }
 
-  products.forEach(p => {
-    p.addEventListener('click', () => {
-      const id = p.dataset.id;
-      const name = p.dataset.name;
-      const price = parseFloat(p.dataset.price);
-      const minprice = parseFloat(p.dataset.min);
-
-      // create item card
-      const div = document.createElement('div'); div.className='sale-item bg-gray-50 p-3 rounded flex justify-between items-center';
-      div.innerHTML = `
-        <div>
-          <input type="hidden" name="item-__idx__-product_id" class="product-id" value="${id}">
-          <div class="font-medium">${name}</div>
-          <div class="text-xs">unit price KES <input name="item-__idx__-unit_price" class="unit-price border p-1 rounded w-32" value="${price}"> (min: KES ${minprice})</div>
+  function addItem(id, name, price, minprice, qty = 1) {
+    const tr = document.createElement('tr');
+    tr.className = 'sale-item';
+    tr.setAttribute('role', 'row');
+    tr.innerHTML = `
+      <td>
+        <input type="hidden" name="item-${itemIndex}-product_id" class="product-id" value="${id}">
+        <span class="item-product-name-cell">${name}</span>
+      </td>
+      <td style="text-align: right;">
+        <div class="flex flex-col items-end gap-1">
+          <div class="flex items-center gap-1">
+            <span class="text-gray-600 text-sm font-medium">KES</span>
+            <input name="item-${itemIndex}-unit_price" class="unit-price table-input price-input" value="${price.toFixed(2)}" aria-label="Unit price for ${name}">
+          </div>
+          <span class="text-xs text-gray-500">Min: KES ${minprice.toFixed(2)}</span>
         </div>
-        <div class="text-right">
-          <div>Qty <input name="item-__idx__-qty" class="qty border p-1 rounded w-16" value="1"></div>
-          <div class="line-total mt-2">KES ${(price*1).toFixed(2)}</div>
-          <button type="button" class="remove mt-2 text-sm text-red-600">Remove</button>
-        </div>
-      `;
-      itemsContainer.appendChild(div);
+      </td>
+      <td style="text-align: right;">
+        <input name="item-${itemIndex}-qty" class="qty table-input qty-input" type="number" min="1" value="${qty}" aria-label="Quantity for ${name}">
+      </td>
+      <td class="item-line-total-cell line-total">KES ${(price * qty).toFixed(2)}</td>
+      <td class="text-center">
+        <button type="button" class="remove-btn text-sm" aria-label="Remove ${name}">Remove</button>
+      </td>
+    `;
+    itemsContainer.appendChild(tr);
 
-      // replace __idx__ with index
-      const idx = Array.from(itemsContainer.querySelectorAll('.sale-item')).indexOf(div);
-      div.innerHTML = div.innerHTML.replace(/__idx__/g, idx);
-
-      // events
-      div.querySelector('.qty').addEventListener('input', recalc);
-      div.querySelector('.unit-price').addEventListener('input', function(){
-        // enforce min price on client side; server side also enforces
-        const val = parseFloat(this.value || 0);
-        if (val < minprice){
-          alert('Price cannot be lower than min price: KES ' + minprice);
-          this.value = minprice.toFixed(2);
-        }
-        recalc();
-      });
-      div.querySelector('.remove').addEventListener('click', ()=>{ div.remove(); recalc(); });
-
+    const unitPriceInput = tr.querySelector('.unit-price');
+    unitPriceInput.addEventListener('input', function() {
+      const val = parseFloat(this.value || 0);
+      if (val < minprice) {
+        alert('Price cannot be lower than min price: KES ' + minprice.toFixed(2));
+        this.value = minprice.toFixed(2);
+      }
       recalc();
     });
+    tr.querySelector('.qty').addEventListener('input', recalc);
+    tr.querySelector('.remove-btn').addEventListener('click', () => {
+      tr.remove();
+      recalc();
+    });
+
+    itemIndex++;
+    recalc();
+  }
+
+  {% if preselected_product %}
+    addItem({{ preselected_product.id }}, "{{ preselected_product.name|escapejs }}", {{ preselected_product.price }}, {{ preselected_product.min_price }});
+  {% endif %}
+
+  // Initialize placeholder check on load
+  document.addEventListener('DOMContentLoaded', recalc); 
+
+  // --- Search Logic (remains unchanged) ---
+  const searchInput = document.getElementById('product-search');
+  const searchResults = document.getElementById('search-results');
+  let selectedIndex = -1;
+  let debounceTimer;
+
+  searchInput.addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      const term = this.value.toLowerCase();
+      searchResults.innerHTML = '';
+      searchInput.classList.add('search-loading');
+      if (term.length < 1) {
+        searchResults.style.display = 'none';
+        searchInput.classList.remove('search-loading');
+        return;
+      }
+      const filtered = products.filter(p => p.name.toLowerCase().includes(term));
+      filtered.forEach((p, index) => {
+        const div = document.createElement('div');
+        div.className = 'search-result-item';
+        div.setAttribute('role', 'option');
+        div.setAttribute('aria-selected', 'false');
+        div.tabIndex = -1;
+        div.innerHTML = `
+          <div class="font-medium" style="color: #006666;">${p.name}</div>
+          <div class="text-sm text-gray-500">KES ${p.price.toFixed(2)}</div>
+        `;
+        div.addEventListener('click', () => {
+          addItem(p.id, p.name, p.price, p.min_price);
+          searchInput.value = '';
+          searchResults.style.display = 'none';
+          selectedIndex = -1;
+        });
+        searchResults.appendChild(div);
+      });
+      searchResults.style.display = filtered.length > 0 ? 'block' : 'none';
+      searchInput.classList.remove('search-loading');
+      selectedIndex = -1;
+    }, 300);
   });
 
-  // on submit, ensure dynamic fields names are consistent indexes => already set in template replacement above
-  document.getElementById('sale-form').addEventListener('submit', function(e){
-    // nothing special here; server expects item-0..., item-1...
+  searchInput.addEventListener('keydown', function(e) {
+    const items = searchResults.querySelectorAll('.search-result-item');
+    if (items.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+      updateSelection(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedIndex = Math.max(selectedIndex - 1, -1);
+      updateSelection(items);
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+      e.preventDefault();
+      items[selectedIndex].click();
+    }
+  });
+
+  function updateSelection(items) {
+    items.forEach((item, index) => {
+      item.setAttribute('aria-selected', index === selectedIndex ? 'true' : 'false');
+      if (index === selectedIndex) {
+        item.focus();
+        item.scrollIntoView({ block: 'nearest' });
+      }
+    });
+  }
+
+  document.addEventListener('click', function(e) {
+    if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+      searchResults.style.display = 'none';
+      selectedIndex = -1;
+    }
   });
 </script>
 {% endblock %}
