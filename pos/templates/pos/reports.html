@@ -2,21 +2,645 @@
 {% block title %}Reports{% endblock %}
 {% block page_title %}Reports{% endblock %}
 {% block content %}
-  <div class="space-y-4">
-    {% for row in data %}
-      <div class="bg-white p-4 rounded shadow">
-        <div class="flex justify-between">
-          <div>
-            <h4 class="font-semibold">{{ row.branch.name }}</h4>
-            <div class="text-sm text-gray-500">{{ row.branch.address }}</div>
-          </div>
-          <div class="text-right">
-            <div>Opening: KES {{ row.opening }}</div>
-            <div>Sales: KES {{ row.sales }}</div>
-            <div class="font-bold">Closing: KES {{ row.closing }}</div>
-          </div>
-        </div>
+<style>
+  .card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    background: #ffffff;
+  }
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 102, 102, 0.2);
+  }
+  .table-container {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    padding: 16px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  th {
+    background-color: #006666;
+    color: #ffffff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  th:hover {
+    background-color: #1F7A5F;
+  }
+  tr:hover {
+    background-color: #f0f4f8;
+  }
+  .filter-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .filter-container select, .filter-container input {
+    border: 1px solid #006666;
+    border-radius: 8px;
+    padding: 8px;
+    transition: border-color 0.3s ease;
+  }
+  .filter-container select:focus, .filter-container input:focus {
+    border-color: #D4A017;
+    outline: none;
+    box-shadow: 0 0 5px rgba(212, 160, 23, 0.5);
+  }
+  .chart-container {
+    position: relative;
+    max-width: 600px;
+    margin: 2rem auto;
+  }
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #006666;
+  }
+  .text-teal { color: #006666 !important; }
+  .text-jungle-green { color: #1F7A5F !important; }
+  .text-gold { color: #D4A017 !important; }
+  .sort-icon {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .collapsible-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+  }
+  .collapsible-content {
+    display: none;
+  }
+  .collapsible-content.active {
+    display: block;
+  }
+  .search-input {
+    width: 100%;
+    max-width: 300px;
+    margin-bottom: 1rem;
+  }
+</style>
+
+<div class="container mx-auto space-y-8">
+  <!-- Filters -->
+  <form id="filter-form" action="{% url 'pos:reports' %}" method="get">
+    <div class="card filter-container">
+      <div class="flex-1">
+        <label for="date-range" class="block text-sm font-medium text-gray-700">Date Range</label>
+        <select id="date-range" name="date-range" class="w-full">
+          <option value="today" {% if request.GET['date-range'] == 'today' %}selected{% endif %}>Today</option>
+          <option value="week" {% if request.GET['date-range'] == 'week' %}selected{% endif %}>This Week</option>
+          <option value="month" {% if request.GET['date-range'] == 'month' %}selected{% endif %}>This Month</option>
+          <option value="custom" {% if request.GET['date-range'] == 'custom' %}selected{% endif %}>Custom</option>
+        </select>
       </div>
-    {% endfor %}
+      <div class="flex-1 {% if request.GET['date-range'] != 'custom' %}hidden{% endif %}" id="custom-date">
+        <label for="start-date" class="block text-sm font-medium text-gray-700">Start Date</label>
+        <input type="date" id="start-date" name="start_date" value="{{ request.GET.start_date }}" class="w-full" />
+      </div>
+      <div class="flex-1 {% if request.GET['date-range'] != 'custom' %}hidden{% endif %}" id="custom-date-end">
+        <label for="end-date" class="block text-sm font-medium text-gray-700">End Date</label>
+        <input type="date" id="end-date" name="end_date" value="{{ request.GET.end_date }}" class="w-full" />
+      </div>
+      <div class="flex-1">
+        <label for="branch-filter" class="block text-sm font-medium text-gray-700">Branch</label>
+        <select id="branch-filter" name="branch" class="w-full">
+          <option value="" {% if not request.GET.branch %}selected{% endif %}>All Branches</option>
+          {% for branch in branches %}
+            <option value="{{ branch.id }}" {% if request.GET.branch == branch.id|stringformat:"s" %}selected{% endif %}>{{ branch.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex-1">
+        <label for="alert-type" class="block text-sm font-medium text-gray-700">Alert Type</label>
+        <select id="alert-type" name="alert_type" class="w-full">
+          <option value="" {% if not request.GET.alert_type %}selected{% endif %}>All Alerts</option>
+          <option value="low_stock" {% if request.GET.alert_type == 'low_stock' %}selected{% endif %}>Low Stock</option>
+          <option value="expiry" {% if request.GET.alert_type == 'expiry' %}selected{% endif %}>Near Expiry</option>
+        </select>
+      </div>
+      <div class="flex items-end">
+        <button type="submit" class="btn-primary">Apply Filters</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div class="card">
+      <h3 class="text-gold">Total Sales</h3>
+      <p class="text-2xl font-bold text-teal">KES {{ total_sales|floatformat:2 }}</p>
+    </div>
+    <div class="card">
+      <h3 class="text-gold">Total Profit</h3>
+      <p class="text-2xl font-bold text-teal">KES {{ total_profit|floatformat:2 }}</p>
+    </div>
+    <div class="card">
+      <h3 class="text-gold">Period</h3>
+      <p class="text-lg text-teal">{{ start_date }} to {{ end_date }}</p>
+    </div>
   </div>
+
+  <!-- Branch Sales Chart -->
+  <div class="card">
+    <div class="collapsible-header">
+      <h3 class="text-gold">Branch Sales Overview</h3>
+      <svg class="toggle-icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+    </div>
+    <div class="collapsible-content active">
+      <div class="chart-container">
+        <canvas id="salesChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Most Selling Products Chart -->
+  <div class="card">
+    <div class="collapsible-header">
+      <h3 class="text-gold">Most Selling Products</h3>
+      <svg class="toggle-icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+    </div>
+    <div class="collapsible-content active">
+      <div class="chart-container">
+        <canvas id="mostSellingChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Branch Sales Table -->
+  <div class="table-container">
+    <div class="collapsible-header">
+      <h3 class="text-gold">Branch Sales</h3>
+      <svg class="toggle-icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+    </div>
+    <div class="collapsible-content active">
+      <input type="text" id="sales-search" class="search-input" placeholder="Search by branch...">
+      <table id="sales-table">
+        <thead>
+          <tr>
+            <th data-sort="branch">Branch <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="opening">Opening (KES) <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="sales">Sales (KES) <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="closing">Closing (KES) <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data %}
+            <tr data-branch="{{ row.branch.id }}">
+              <td>{{ row.branch.name }}</td>
+              <td>{{ row.opening|floatformat:2 }}</td>
+              <td>{{ row.sales|floatformat:2 }}</td>
+              <td>{{ row.closing|floatformat:2 }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-gray-500">No sales data available</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Stock Report Table -->
+  <div class="table-container">
+    <div class="collapsible-header">
+      <h3 class="text-gold">Stock Report</h3>
+      <svg class="toggle-icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+    </div>
+    <div class="collapsible-content active">
+      <input type="text" id="stock-search" class="search-input" placeholder="Search by product...">
+      <table id="stock-table">
+        <thead>
+          <tr>
+            <th data-sort="product_name">Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="opening">Opening Stock <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="sold">Sold <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="closing">Closing Stock <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in stock_report %}
+            <tr>
+              <td>{{ item.product_name }}</td>
+              <td>{{ item.opening }}</td>
+              <td>{{ item.sold }}</td>
+              <td>{{ item.closing }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-gray-500">No stock data available</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Alerts Chart -->
+  {% if role == 'admin' %}
+  <div class="card">
+    <div class="collapsible-header">
+      <h3 class="text-gold">Alerts Distribution</h3>
+      <svg class="toggle-icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+    </div>
+    <div class="collapsible-content active">
+      <div class="chart-container">
+        <canvas id="alertsChart"></canvas>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Low Stock Alerts -->
+  <div class="table-container" id="low-stock-container" {% if request.GET.alert_type == 'expiry' %}style="display:none"{% endif %}>
+    <div class="collapsible-header">
+      <h3 class="text-gold">Low Stock Alerts</h3>
+      <svg class="toggle-icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+    </div>
+    <div class="collapsible-content active">
+      <input type="text" id="low-stock-search" class="search-input" placeholder="Search by product or branch...">
+      <table id="low-stock-table">
+        <thead>
+          <tr>
+            <th data-sort="product">Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="branch">Branch <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="quantity">Quantity <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stock in low_stocks %}
+            <tr data-branch="{{ stock.branch.id }}" data-type="low_stock">
+              <td>{{ stock.product.name }}</td>
+              <td>{{ stock.branch.name }}</td>
+              <td>{{ stock.quantity }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="3" class="text-center text-gray-500">No low stock items</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Expiry Warnings -->
+  <div class="table-container" id="expiry-container" {% if request.GET.alert_type == 'low_stock' %}style="display:none"{% endif %}>
+    <div class="collapsible-header">
+      <h3 class="text-gold">Expiry Warnings</h3>
+      <svg class="toggle-icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+    </div>
+    <div class="collapsible-content active">
+      <input type="text" id="expiry-search" class="search-input" placeholder="Search by product or branch...">
+      <table id="expiry-table">
+        <thead>
+          <tr>
+            <th data-sort="product">Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="branch">Branch <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="expiry_date">Expiry Date <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stock in near_expiries %}
+            <tr data-branch="{{ stock.branch.id }}" data-type="expiry" data-expiry="{{ stock.expiry_date|date:'Y-m-d' }}">
+              <td>{{ stock.product.name }}</td>
+              <td>{{ stock.branch.name }}</td>
+              <td>{{ stock.expiry_date|date:"d/m/Y" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="3" class="text-center text-gray-500">No expiring items</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Admin Notifications -->
+  {% if role == 'admin' and notifications %}
+  <div class="table-container">
+    <div class="collapsible-header">
+      <h3 class="text-gold">All Alerts</h3>
+      <svg class="toggle-icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+    </div>
+    <div class="collapsible-content active">
+      <input type="text" id="notifications-search" class="search-input" placeholder="Search alerts...">
+      <table id="notifications-table">
+        <thead>
+          <tr>
+            <th data-sort="message">Message <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="created">Date <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for notification in notifications %}
+            <tr data-type="{% if 'Low stock' in notification.message %}low_stock{% elif 'Near expiry' in notification.message %}expiry{% endif %}">
+              <td>{{ notification.message }}</td>
+              <td>{{ notification.created|date:"d/m/Y" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="2" class="text-center text-gray-500">No active alerts</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+<script>
+  // Initialize Charts
+  document.addEventListener('DOMContentLoaded', () => {
+    // Sales Chart (Bar)
+    const salesCtx = document.getElementById('salesChart')?.getContext('2d');
+    let salesChartInstance;
+    if (salesCtx) {
+      salesChartInstance = new Chart(salesCtx, {
+        type: 'bar',
+        data: {
+          labels: [{% for row in data %}'{{ row.branch.name }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+          datasets: [{
+            label: 'Sales (KES)',
+            data: [{% for row in data %}{{ row.sales }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            backgroundColor: '#D4A017',
+            borderColor: '#006666',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                label: ctx => `Branch: ${ctx.label}, Sales: KES ${ctx.raw.toFixed(2)}`
+              }
+            }
+          },
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Sales (KES)' } }
+          },
+          onClick: (e, elements) => {
+            if (elements.length) {
+              const index = elements[0].index;
+              const branchName = salesChartInstance.data.labels[index];
+              const branchId = document.querySelector(`#sales-table tbody tr td:first-child`).parentElement.dataset.branch;
+              filterTableByBranch('sales-table', branchId);
+            }
+          }
+        }
+      });
+    }
+
+    // Most Selling Chart (Bar)
+    const mostSellingCtx = document.getElementById('mostSellingChart')?.getContext('2d');
+    if (mostSellingCtx) {
+      new Chart(mostSellingCtx, {
+        type: 'bar',
+        data: {
+          labels: [{% for item in most_selling %}'{{ item.product__name }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+          datasets: [{
+            label: 'Quantity Sold',
+            data: [{% for item in most_selling %}{{ item.total_qty }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            backgroundColor: '#006666',
+            borderColor: '#D4A017',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.label}: ${ctx.raw} units (KES ${{% for item in most_selling %}{{ item.total_revenue }}{% if not forloop.last %},{% endif %}{% endfor %}[ctx.dataIndex].toFixed(2)})`
+              }
+            }
+          },
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Quantity' } }
+          },
+          onClick: (e, elements) => {
+            if (elements.length) {
+              const index = elements[0].index;
+              const productName = mostSellingCtx.getChart().data.labels[index];
+              filterTableByProduct('stock-table', productName);
+            }
+          }
+        }
+      });
+    }
+
+    // Alerts Chart (Pie)
+    const alertsCtx = document.getElementById('alertsChart')?.getContext('2d');
+    if (alertsCtx) {
+      new Chart(alertsCtx, {
+        type: 'pie',
+        data: {
+          labels: ['Low Stock', 'Near Expiry'],
+          datasets: [{
+            data: [{{ low_stocks|length }}, {{ near_expiries|length }}],
+            backgroundColor: ['#E6F0FA', '#FEF7E6'],
+            borderColor: ['#006666', '#D4A017'],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.label}: ${ctx.raw} items`
+              }
+            }
+          },
+          onClick: (e, elements) => {
+            if (elements.length) {
+              const index = elements[0].index;
+              const alertType = index === 0 ? 'low_stock' : 'expiry';
+              document.getElementById('alert-type').value = alertType;
+              applyFilters();
+            }
+          }
+        }
+      });
+    }
+  });
+
+  // Sorting Functionality
+  function sortTable(tableId, column, type) {
+    const table = document.getElementById(tableId);
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const isAsc = table.querySelector(`th[data-sort="${column}"]`).dataset.order !== 'asc';
+    
+    rows.sort((a, b) => {
+      let aVal = a.querySelector(`td:nth-child(${getColumnIndex(table, column)})`).textContent;
+      let bVal = b.querySelector(`td:nth-child(${getColumnIndex(table, column)})`).textContent;
+      
+      if (type === 'number') {
+        aVal = parseFloat(aVal) || 0;
+        bVal = parseFloat(bVal) || 0;
+      } else if (type === 'date') {
+        aVal = a.dataset.expiry ? new Date(a.dataset.expiry) : new Date(aVal);
+        bVal = b.dataset.expiry ? new Date(b.dataset.expiry) : new Date(bVal);
+      } else {
+        aVal = aVal.toLowerCase();
+        bVal = bVal.toLowerCase();
+      }
+      
+      return isAsc ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+    });
+    
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+    table.querySelector(`th[data-sort="${column}"]`).dataset.order = isAsc ? 'asc' : 'desc';
+    updateSortIcons(tableId, column, isAsc);
+  }
+
+  function getColumnIndex(table, column) {
+    const headers = Array.from(table.querySelectorAll('th'));
+    return headers.findIndex(th => th.dataset.sort === column) + 1;
+  }
+
+  function updateSortIcons(tableId, column, isAsc) {
+    const table = document.getElementById(tableId);
+    table.querySelectorAll('th .sort-icon').forEach(icon => {
+      icon.innerHTML = '<path d="M7 10l5 5 5-5z"/>';
+    });
+    const activeIcon = table.querySelector(`th[data-sort="${column}"] .sort-icon`);
+    if (activeIcon) {
+      activeIcon.innerHTML = isAsc ? '<path d="M7 14l5-5 5 5z"/>' : '<path d="M7 10l5 5 5-5z"/>';
+    }
+  }
+
+  // Table Filtering by Search
+  function filterTable(tableId, searchTerm, columnIndex) {
+    const table = document.getElementById(tableId);
+    const rows = table.querySelectorAll('tbody tr');
+    searchTerm = searchTerm.toLowerCase();
+    rows.forEach(row => {
+      const text = row.querySelector(`td:nth-child(${columnIndex})`).textContent.toLowerCase();
+      row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+  }
+
+  function filterTableByBranch(tableId, branchId) {
+    const table = document.getElementById(tableId);
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+      row.style.display = branchId ? (row.dataset.branch === branchId ? '' : 'none') : '';
+    });
+  }
+
+  function filterTableByProduct(tableId, productName) {
+    const table = document.getElementById(tableId);
+    const rows = table.querySelectorAll('tbody tr');
+    productName = productName.toLowerCase();
+    rows.forEach(row => {
+      const text = row.querySelector('td:first-child').textContent.toLowerCase();
+      row.style.display = text.includes(productName) ? '' : 'none';
+    });
+  }
+
+  // Filtering Functionality (client-side for alerts)
+  function applyFilters() {
+    const alertType = document.getElementById('alert-type').value;
+    document.getElementById('low-stock-container').style.display = (alertType === '' || alertType === 'low_stock') ? '' : 'none';
+    document.getElementById('expiry-container').style.display = (alertType === '' || alertType === 'expiry') ? '' : 'none';
+    
+    document.querySelectorAll('#notifications-table tbody tr').forEach(row => {
+      const type = row.dataset.type;
+      row.style.display = alertType && type !== alertType ? 'none' : '';
+    });
+  }
+
+  // Collapsible Sections
+  document.querySelectorAll('.collapsible-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const content = header.nextElementSibling;
+      const icon = header.querySelector('.toggle-icon');
+      content.classList.toggle('active');
+      icon.innerHTML = content.classList.contains('active') ? 
+        '<path d="M7 10l5 5 5-5z"/>' : 
+        '<path d="M7 14l5-5 5 5z"/>';
+    });
+  });
+
+  // Search Inputs
+  document.getElementById('sales-search')?.addEventListener('input', (e) => {
+    filterTable('sales-table', e.target.value, 1);
+  });
+  document.getElementById('stock-search')?.addEventListener('input', (e) => {
+    filterTable('stock-table', e.target.value, 1);
+  });
+  document.getElementById('low-stock-search')?.addEventListener('input', (e) => {
+    filterTable('low-stock-table', e.target.value, 1);
+  });
+  document.getElementById('expiry-search')?.addEventListener('input', (e) => {
+    filterTable('expiry-table', e.target.value, 1);
+  });
+  document.getElementById('notifications-search')?.addEventListener('input', (e) => {
+    filterTable('notifications-table', e.target.value, 1);
+  });
+
+  // Custom Date Range Toggle
+  document.getElementById('date-range').addEventListener('change', function() {
+    const customDate = document.getElementById('custom-date');
+    const customDateEnd = document.getElementById('custom-date-end');
+    if (this.value === 'custom') {
+      customDate.classList.remove('hidden');
+      customDateEnd.classList.remove('hidden');
+    } else {
+      customDate.classList.add('hidden');
+      customDateEnd.classList.add('hidden');
+    }
+  });
+
+  // Event Listeners for Filters
+  document.getElementById('alert-type').addEventListener('change', applyFilters);
+  window.addEventListener('load', applyFilters);
+
+  // Event Listeners for Sorting
+  document.querySelectorAll('#sales-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => sortTable('sales-table', th.dataset.sort, th.dataset.sort === 'branch' ? 'string' : 'number'));
+  });
+  document.querySelectorAll('#stock-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => sortTable('stock-table', th.dataset.sort, th.dataset.sort === 'product_name' ? 'string' : 'number'));
+  });
+  document.querySelectorAll('#low-stock-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => sortTable('low-stock-table', th.dataset.sort, th.dataset.sort === 'quantity' ? 'number' : 'string'));
+  });
+  document.querySelectorAll('#expiry-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => sortTable('expiry-table', th.dataset.sort, th.dataset.sort === 'expiry_date' ? 'date' : 'string'));
+  });
+  document.querySelectorAll('#notifications-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => sortTable('notifications-table', th.dataset.sort, th.dataset.sort === 'created' ? 'date' : 'string'));
+  });
+</script>
 {% endblock %}

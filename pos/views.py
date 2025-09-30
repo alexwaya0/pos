@@ -6,10 +6,10 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.urls import reverse
 from decimal import Decimal
-from django.db.models import Sum
+from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 from .models import Branch, Product, ProductStock, Customer, Sale, SaleItem
 from .forms import ProductForm, ProductStockForm, SaleCreateForm
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 def in_group(user, group_name):
     return user.groups.filter(name=group_name).exists() or user.is_superuser
@@ -22,7 +22,6 @@ def is_manager(user):
 
 @login_required
 def dashboard(request):
-    # Determine user role
     if request.user.is_superuser:
         role = 'admin'
     elif is_manager(request.user):
@@ -30,16 +29,14 @@ def dashboard(request):
     elif is_cashier(request.user):
         role = 'cashier'
     else:
-        role = 'cashier'  # Default to cashier if no specific role
+        role = 'cashier'
 
-    # Common context
     context = {
         'role': role,
         'products': Product.objects.all(),
         'categories': Product.objects.values('category').distinct(),
     }
 
-    # Branch-specific data for cashier and manager
     if role in ['cashier', 'manager']:
         try:
             branch = request.user.profile.branch
@@ -47,14 +44,10 @@ def dashboard(request):
             messages.error(request, "User profile or branch not set.")
             return redirect('pos:product_list')
 
-        # Today's sales
         today = timezone.localdate()
         today_sales = Sale.objects.filter(branch=branch, created_at__date=today).aggregate(total=Sum('total'))['total'] or 0
-        context['today_sales'] = today_sales
-
-        # Low stock and near expiry
-        low_stock_threshold = 10  # Hardcoded, adjust as needed
-        expiry_days_threshold = 60  # Hardcoded, adjust as needed
+        low_stock_threshold = 10
+        expiry_days_threshold = 60
         low_stocks = ProductStock.objects.filter(branch=branch, quantity__lte=low_stock_threshold)
         near_expiries = ProductStock.objects.filter(
             branch=branch,
@@ -62,19 +55,18 @@ def dashboard(request):
             expiry_date__isnull=False
         )
         context.update({
+            'today_sales': today_sales,
             'low_stocks': low_stocks,
             'near_expiries': near_expiries,
             'sales_summary': Sale.objects.filter(branch=branch).aggregate(total=Sum('total'))['total'] or 0 if role == 'manager' else None
         })
 
-    # Admin-specific data
     if role == 'admin':
         branches = Branch.objects.all()
         branch_sales = {
             b.name: Sale.objects.filter(branch=b).aggregate(total=Sum('total'))['total'] or 0
             for b in branches
         }
-        # Mock notifications: combine low stock and expiry across all branches
         low_stock_threshold = 10
         expiry_days_threshold = 60
         today = timezone.localdate()
@@ -86,12 +78,12 @@ def dashboard(request):
         notifications = []
         for stock in low_stocks:
             notifications.append({
-                'message': f"Low stock: {stock.product.name} ({stock.quantity} units) at {stock.branch.name}",
+                'message': f"Low stock: {stock.product.name} ({stock.quantity} units, Batch: {stock.batch}) at {stock.branch.name}",
                 'created': today
             })
         for stock in near_expiries:
             notifications.append({
-                'message': f"Near expiry: {stock.product.name} on {stock.expiry_date} at {stock.branch.name}",
+                'message': f"Near expiry: {stock.product.name} (Batch: {stock.batch}) on {stock.expiry_date} at {stock.branch.name}",
                 'created': today
             })
         context.update({
@@ -111,7 +103,6 @@ def product_list(request):
 @login_required
 @user_passes_test(lambda u: is_cashier(u) or is_manager(u) or u.is_superuser)
 def product_add(request):
-    # Cashiers can add new products
     if request.method == "POST":
         form = ProductForm(request.POST)
         stock_form = ProductStockForm(request.POST)
@@ -131,20 +122,13 @@ def product_add(request):
 @login_required
 @user_passes_test(lambda u: is_cashier(u) or is_manager(u) or u.is_superuser)
 def sale_create(request):
-    """
-    Basic sale creation without barcode. Frontend will POST items list as JSON or form fields.
-    Supports pre-selected product from dashboard.
-    """
     preselected_product = None
     if 'product' in request.GET:
         preselected_product = get_object_or_404(Product, pk=request.GET.get('product'))
 
     if request.method == "POST":
-        # items posted as product_{id}_qty and product_{id}_price or we can accept a simple structure
-        # For simplicity, expect form fields: branch, customer_phone, customer_name, notes
         form = SaleCreateForm(request.POST)
         items = []
-        # collect items from POST: fields named item-0-product, item-0-price, item-0-qty ...
         index = 0
         while True:
             p_field = f"item-{index}-product_id"
@@ -156,7 +140,6 @@ def sale_create(request):
             unit_price = Decimal(request.POST.get(price_field))
             qty = int(request.POST.get(qty_field))
             product = get_object_or_404(Product, pk=pid)
-            # enforce min price
             if unit_price < product.min_price:
                 messages.error(request, f"Price for {product.name} cannot be lower than {product.min_price}")
                 return redirect("pos:sale_create")
@@ -179,21 +162,16 @@ def sale_create(request):
             with transaction.atomic():
                 sale = Sale.objects.create(branch=branch, cashier=request.user, customer=customer, total=total, cash_received=total, notes=notes)
                 for it in items:
-                    # choose a stock entry with earliest expiry for product in branch with qty>0
                     stock_qs = ProductStock.objects.filter(product=it["product"], branch=branch, quantity__gte=it["qty"]).order_by("expiry_date")
                     chosen_stock = stock_qs.first()
                     if not chosen_stock:
-                        # try partial reduce from multiple lots (simple implementation: fail)
                         messages.error(request, f"Insufficient stock for {it['product'].name} in branch {branch.name}")
                         raise Exception("Insufficient stock")
-                    # reduce quantity
                     chosen_stock.quantity -= it["qty"]
                     chosen_stock.save()
                     line_total = it["unit_price"] * it["qty"]
                     SaleItem.objects.create(sale=sale, product=it["product"], product_stock=chosen_stock, unit_price=it["unit_price"], qty=it["qty"], line_total=line_total)
-                # optional email receipt to customer if email provided
                 if customer and customer.email:
-                    # provide receipt URL
                     receipt_url = request.build_absolute_uri(reverse("pos:receipt", kwargs={"sale_id": sale.id}))
                     send_mail(
                         subject=f"Your Receipt from {branch.name}",
@@ -203,7 +181,6 @@ def sale_create(request):
                         fail_silently=True,
                     )
             messages.success(request, "Sale recorded.")
-            # Admin notifications will be via daily reports; we do not email per sale
             return redirect("pos:receipt", sale_id=sale.id)
     else:
         form = SaleCreateForm()
@@ -221,14 +198,105 @@ def receipt_view(request, sale_id):
 
 @login_required
 def reports(request):
-    # basic opening/closing balances per branch for days - simplified
     branches = Branch.objects.all()
-    # For demo: compute today's opening and closing by sum of sales amounts. A robust implementation would use cash ledger.
     today = timezone.localdate()
+    low_stock_threshold = 10
+    expiry_days_threshold = 60
+
+    date_range = request.GET.get('date-range', 'today')
+    branch_id = request.GET.get('branch', '')
+    alert_type = request.GET.get('alert_type', '')
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
+    if date_range == 'week':
+        start_date = today - timedelta(days=7)
+        end_date = today
+    elif date_range == 'month':
+        start_date = today - timedelta(days=30)
+        end_date = today
+    elif date_range == 'custom' and start_date_str and end_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Invalid date format. Using today's data.")
+            start_date = today
+            end_date = today
+    else:
+        start_date = today
+        end_date = today
+
+    selected_branches = branches
+    if branch_id:
+        selected_branches = branches.filter(id=branch_id)
+
     data = []
-    for b in branches:
-        day_sales = Sale.objects.filter(branch=b, created_at__date=today)
-        total = sum(s.total for s in day_sales)
-        # for demo, opening balance is assumed 0 (you can add cash ledger to track)
-        data.append({"branch": b, "opening": 0, "sales": total, "closing": total})
-    return render(request, "pos/reports.html", {"data": data})
+    for branch in selected_branches:
+        sales_qs = Sale.objects.filter(branch=branch, created_at__date__gte=start_date, created_at__date__lte=end_date)
+        total = sales_qs.aggregate(total=Sum('total'))['total'] or 0
+        data.append({"branch": branch, "opening": 0, "sales": total, "closing": total})
+
+    total_sales = sum(row['sales'] for row in data)
+
+    sale_items_qs = SaleItem.objects.filter(sale__branch__in=selected_branches, sale__created_at__date__gte=start_date, sale__created_at__date__lte=end_date)
+
+    total_profit = sale_items_qs.aggregate(
+        profit=Sum(ExpressionWrapper(F('line_total') - F('qty') * F('product_stock__unit_cost'), output_field=DecimalField()))
+    )['profit'] or Decimal('0.00')
+
+    most_selling = sale_items_qs.values('product__name').annotate(total_qty=Sum('qty'), total_revenue=Sum('line_total')).order_by('-total_qty')[:5]
+
+    sold_per_product = sale_items_qs.values('product__id', 'product__name').annotate(sold=Sum('qty')).order_by('product__name')
+    stock_report = []
+    for item in sold_per_product:
+        product_id = item['product__id']
+        closing = ProductStock.objects.filter(product_id=product_id, branch__in=selected_branches).aggregate(total=Sum('quantity'))['total'] or 0
+        opening = closing + item['sold']
+        stock_report.append({
+            'product_name': item['product__name'],
+            'opening': opening,
+            'sold': item['sold'],
+            'closing': closing
+        })
+
+    low_stocks = ProductStock.objects.filter(quantity__lte=low_stock_threshold, branch__in=selected_branches)
+    near_expiries = ProductStock.objects.filter(
+        expiry_date__lte=today + timedelta(days=expiry_days_threshold),
+        expiry_date__isnull=False,
+        branch__in=selected_branches
+    )
+
+    if alert_type == 'low_stock':
+        near_expiries = ProductStock.objects.none()
+    elif alert_type == 'expiry':
+        low_stocks = ProductStock.objects.none()
+
+    notifications = []
+    if request.user.is_superuser:
+        for stock in low_stocks:
+            notifications.append({
+                'message': f"Low stock: {stock.product.name} ({stock.quantity} units, Batch: {stock.batch}) at {stock.branch.name}",
+                'created': today
+            })
+        for stock in near_expiries:
+            notifications.append({
+                'message': f"Near expiry: {stock.product.name} (Batch: {stock.batch}) on {stock.expiry_date} at {stock.branch.name}",
+                'created': today
+            })
+
+    context = {
+        'data': data,
+        'branches': branches,
+        'low_stocks': low_stocks,
+        'near_expiries': near_expiries,
+        'notifications': notifications,
+        'role': 'admin' if request.user.is_superuser else 'manager' if is_manager(request.user) else 'cashier',
+        'total_sales': total_sales,
+        'total_profit': total_profit,
+        'most_selling': most_selling,
+        'stock_report': stock_report,
+        'start_date': start_date.strftime('%Y-%m-%d'),
+        'end_date': end_date.strftime('%Y-%m-%d'),
+    }
+    return render(request, "pos/reports.html", context)
