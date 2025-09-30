@@ -3,123 +3,312 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Amigo POS™ - {% block title %}{% endblock %}</title>
 
-  <!-- Tailwind -->
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <style>
-    :root{
+    :root {
       --darkgreen: #064420;
       --gold: #D4AF37;
       --gold-dark: #b8962c;
+      --panel-bg: #ffffff;
+      --muted: #6b7280;
     }
-    body { font-family: Inter, ui-sans-serif, system-ui; background: #f3f4f6; color: #111827; }
-    .app-sidebar { min-height: 100vh; width: 260px; background: linear-gradient(180deg, var(--darkgreen), #0b3a2b); color: var(--gold); padding: 1.25rem; display:flex; flex-direction:column; justify-content:space-between; }
-    .nav-link { display:flex; align-items:center; gap:.75rem; padding:.6rem .75rem; border-radius:.5rem; color:var(--gold); font-weight:500; text-decoration:none; }
-    .nav-link:hover { background: rgba(255,255,255,0.08); }
-    .nav-link.active { background: var(--gold); color: var(--darkgreen); font-weight:600; }
-    .btn-primary { background:var(--gold); color:var(--darkgreen); padding:.45rem .9rem; border-radius:.5rem; font-weight:600; display:inline-flex; align-items:center; gap:.4rem; }
-    .btn-primary:hover { background:var(--gold-dark); }
-    .flash { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; padding:.85rem 1rem; border-radius:.5rem; background:var(--gold); color:var(--darkgreen); margin-bottom:0.75rem; }
-    .flash .close { background:transparent; border:0; font-size:1rem; cursor:pointer; color:var(--darkgreen); }
-    .fade-out { transition: opacity .5s ease, transform .5s ease; opacity:0; transform: translateY(-6px); }
-    .app-main { flex:1; }
-    .navbar { background:#fff; border-bottom:1px solid #e5e7eb; padding:.75rem 1.5rem; display:flex; justify-content:space-between; align-items:center; }
-    .sidebar-footer { font-size:0.85rem; opacity:0.85; margin-top:1rem; text-align:center; }
-    .sidebar-footer a { color:var(--gold); text-decoration:underline; }
+
+    /* Basic page */
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    /* Sidebar layout helper for desktop + mobile transform */
+    .sidebar-panel {
+      background: linear-gradient(180deg, var(--darkgreen), #0b3a2b);
+      color: var(--gold);
+    }
+
+    /* Nav link base */
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: .6rem .75rem;
+      border-radius: .5rem;
+      color: var(--gold);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .nav-link:hover {
+      background: rgba(255,255,255,0.06);
+    }
+
+    /* Active link */
+    .nav-link.active {
+      background: var(--gold);
+      color: var(--darkgreen);
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      background: var(--gold);
+      color: var(--darkgreen);
+      padding: .45rem .85rem;
+      border-radius: .5rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .btn-primary:hover {
+      background: var(--gold-dark);
+    }
+
+    /* Flash */
+    .flash {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: flex-start;
+      padding: .85rem 1rem;
+      border-radius: .5rem;
+      background: var(--gold);
+      color: var(--darkgreen);
+      margin-bottom: .75rem;
+      box-shadow: 0 6px 18px rgba(15,23,42,.06);
+    }
+    .flash .close {
+      background: transparent;
+      border: 0;
+      font-size: 1rem;
+      cursor: pointer;
+      color: var(--darkgreen);
+    }
+
+    .fade-out {
+      transition: opacity .35s ease, transform .35s ease;
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+
+    /* Sidebar footer */
+    .sidebar-footer a {
+      color: var(--gold);
+      text-decoration: underline;
+    }
+
+    /* Mobile backdrop */
+    .backdrop {
+      background: rgba(0,0,0,0.45);
+    }
+
+    /* Ensure main content doesn't overflow */
+    .main-content {
+      width: 100%;
+      min-width: 0; /* Prevents flex item from overflowing */
+    }
   </style>
 </head>
-<body class="flex min-h-screen">
+<body class="min-h-screen">
+  <!-- MOBILE BACKDROP (shown when mobile sidebar open) -->
+  <div id="mobile-backdrop" class="fixed inset-0 z-30 hidden lg:hidden backdrop"></div>
 
-  {% if request.user.is_authenticated %}
-  <!-- Sidebar -->
-  <aside class="app-sidebar hidden lg:block">
-    <div>
-      <div class="brand flex gap-2 items-center mb-6">
-        <div class="logo w-11 h-11 rounded-lg flex items-center justify-center font-bold text-lg bg-[rgba(255,255,255,0.08)]">AP</div>
-        <div>
-          <div class="text-lg font-semibold">Amigo POS™</div>
-          <div class="text-sm opacity-80">Kenya • Cash POS</div>
+  <!-- Main flex container to handle layout -->
+  <div class="flex min-h-screen">
+    {# SIDEBAR - transform-based so we can toggle on mobile #}
+    {% if request.user.is_authenticated %}
+    <aside id="sidebar"
+           class="sidebar-panel fixed inset-y-0 left-0 z-40 w-64 transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-200 ease-in-out flex flex-col"
+           aria-hidden="true">
+      <div class="p-5">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-11 h-11 rounded-lg bg-white/8 flex items-center justify-center font-bold text-lg">AP</div>
+          <div>
+            <div class="text-lg font-semibold">Amigo POS™</div>
+            <div class="text-sm text-white/80">Kenya • Cash POS</div>
+          </div>
         </div>
+
+        <nav class="space-y-1 mt-2">
+          <a href="{% url 'pos:dashboard' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <i data-lucide="home" class="w-4 h-4"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="{% url 'pos:sale_create' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name == 'sale_create' %}active{% endif %}">
+            <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+            <span>New Sale</span>
+          </a>
+          <a href="{% url 'pos:product_list' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name == 'product_list' %}active{% endif %}">
+            <i data-lucide="boxes" class="w-4 h-4"></i>
+            <span>Products</span>
+          </a>
+          <a href="{% url 'pos:product_add' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name == 'product_add' %}active{% endif %}">
+            <i data-lucide="plus-square" class="w-4 h-4"></i>
+            <span>Add Product</span>
+          </a>
+          <a href="{% url 'pos:reports' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name == 'reports' %}active{% endif %}">
+            <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+            <span>Reports</span>
+          </a>
+        </nav>
       </div>
-
-      <nav class="space-y-1">
-        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'pos:dashboard' %}">
-          <i data-lucide="home"></i> Dashboard
-        </a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'sale_create' %}active{% endif %}" href="{% url 'pos:sale_create' %}">
-          <i data-lucide="shopping-cart"></i> New Sale
-        </a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'product_list' %}active{% endif %}" href="{% url 'pos:product_list' %}">
-          <i data-lucide="boxes"></i> Products
-        </a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'product_add' %}active{% endif %}" href="{% url 'pos:product_add' %}">
-          <i data-lucide="plus-square"></i> Add Product
-        </a>
-        <a class="nav-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}" href="{% url 'pos:reports' %}">
-          <i data-lucide="bar-chart-3"></i> Reports
-        </a>
-      </nav>
-    </div>
-
-    <!-- Sidebar Footer -->
-    <div class="sidebar-footer">
-      &copy; {% now "Y" %} – Made by <a href="https://amigohub.africa" target="_blank">Amigo Hub</a>
-    </div>
-  </aside>
-  {% endif %}
-
-  <!-- Main -->
-  <div class="app-main flex flex-col w-full">
-
-    <!-- Navbar -->
-    {% if request.user.is_authenticated and request.resolver_match.url_name not in "login signup" %}
-    <div class="navbar">
-      <div class="text-lg font-semibold">{% block page_title %}Dashboard{% endblock %}</div>
-      <div class="flex items-center gap-3">
-        <span class="text-gray-700 font-medium">Salutations, {{ request.user.get_username }}</span>
-        <form action="{% url 'pos:logout' %}" method="post">
-          {% csrf_token %}
-          <button type="submit" class="btn-primary"><i data-lucide="log-out"></i> Logout</button>
-        </form>
+      <!-- fixed footer at bottom -->
+      <div class="mt-auto p-4 border-t border-white/6 text-center sidebar-footer">
+        &copy; {% now "Y" %} - Made by
+        <a href="https://amigohub.africa" target="_blank" rel="noopener">Amigo Hub</a>
       </div>
-    </div>
+    </aside>
     {% endif %}
 
-    <!-- Content area -->
-    <div class="p-6">
-      <!-- Flash messages -->
-      <div id="flash-wrap">
-        {% if messages %}
-          {% for message in messages %}
-            <div class="flash" data-timeout="10000">
-              <div>{{ message }}</div>
-              <button class="close">✕</button>
+    <!-- MAIN area -->
+    <div class="flex-1 main-content">
+      <!-- TOP NAVBAR -->
+      <header class="bg-white border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex items-center justify-between h-16">
+            <div class="flex items-center gap-3">
+              {# Hamburger only visible on small screens to toggle sidebar #}
+              {% if request.user.is_authenticated %}
+                <button id="sidebarToggle" class="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:bg-gray-100" aria-label="Open sidebar">
+                  <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+              {% endif %}
+              {# page title shown only when logged in #}
+              <div>
+                {% if request.user.is_authenticated %}
+                  <h1 class="text-lg font-semibold">{% block page_title %}Dashboard{% endblock %}</h1>
+                  <p class="text-sm text-gray-500">Welcome back to Amigo POS</p>
+                {% endif %}
+              </div>
             </div>
-          {% endfor %}
-        {% endif %}
-      </div>
+            <div class="flex items-center gap-3">
+              {# if on login/signup view, do not show top-right buttons #}
+              {% if request.resolver_match and request.resolver_match.url_name not in 'login signup' %}
+                {% if request.user.is_authenticated %}
+                  <div class="flex items-center gap-3">
+                    <span class="text-gray-700 font-medium">Salutations, {{ request.user.get_username }}</span>
+                    <form action="{% url 'pos:logout' %}" method="post" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn-primary">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                        <span>Logout</span>
+                      </button>
+                    </form>
+                  </div>
+                {% else %}
+                  <a href="{% url 'pos:login' %}" class="btn-primary">
+                    <i data-lucide="log-in" class="w-4 h-4"></i>
+                    <span>Login</span>
+                  </a>
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </header>
 
-      <!-- Page content -->
-      <div>
-        {% block content %}{% endblock %}
-      </div>
+      <!-- page body -->
+      <main class="py-6 min-h-[calc(100vh-4rem)]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <!-- FLASH MESSAGES -->
+          <div id="flash-container">
+            {% if messages %}
+              {% for msg in messages %}
+                <div class="flash" data-timeout="10000" role="alert">
+                  <div>
+                    <div class="font-semibold">{{ msg.tags|capfirst }}</div>
+                    <div class="text-sm text-gray-900">{{ msg }}</div>
+                  </div>
+                  <div>
+                    <button class="close" aria-label="Dismiss">✕</button>
+                  </div>
+                </div>
+              {% endfor %}
+            {% endif %}
+          </div>
+          <!-- PAGE CONTENT -->
+          <div>
+            {% block content %}{% endblock %}
+          </div>
+        </div>
+      </main>
     </div>
   </div>
 
-  <!-- JS -->
+  <!-- SCRIPTS: lucide, sidebar toggle, flash auto-dismiss -->
   <script>
-    lucide.createIcons();
-    document.querySelectorAll('.flash').forEach((el)=>{
-      const timeout = parseInt(el.dataset.timeout || '10000',10);
-      const t = setTimeout(()=>{ el.classList.add('fade-out'); setTimeout(()=>el.remove(),600); }, timeout);
-      el.querySelector('.close').addEventListener('click', ()=>{ clearTimeout(t); el.remove(); });
-    });
+    // Render lucide icons
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+      lucide.createIcons();
+    } else {
+      window.addEventListener('load', () => { if (window.lucide) lucide.createIcons(); });
+    }
+
+    // Sidebar toggle logic (mobile)
+    (function() {
+      const sidebar = document.getElementById('sidebar');
+      const toggleBtn = document.getElementById('sidebarToggle');
+      const backdrop = document.getElementById('mobile-backdrop');
+
+      function openSidebar() {
+        if (!sidebar) return;
+        sidebar.classList.remove('-translate-x-full');
+        sidebar.setAttribute('aria-hidden', 'false');
+        if (backdrop) backdrop.classList.remove('hidden');
+      }
+      function closeSidebar() {
+        if (!sidebar) return;
+        sidebar.classList.add('-translate-x-full');
+        sidebar.setAttribute('aria-hidden', 'true');
+        if (backdrop) backdrop.classList.add('hidden');
+      }
+
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', function(e) {
+          if (!sidebar) return;
+          if (sidebar.classList.contains('-translate-x-full')) openSidebar();
+          else closeSidebar();
+        });
+      }
+
+      if (backdrop) {
+        backdrop.addEventListener('click', closeSidebar);
+      }
+
+      // Close sidebar when resizing to large screens (cleanup)
+      window.addEventListener('resize', function() {
+        if (window.innerWidth >= 1024 && sidebar) {
+          sidebar.classList.remove('-translate-x-full');
+          sidebar.setAttribute('aria-hidden', 'false');
+          if (backdrop) backdrop.classList.add('hidden');
+        }
+      });
+    })();
+
+    // Flash messages auto-hide + manual close
+    (function() {
+      document.querySelectorAll('#flash-container .flash').forEach(function(el) {
+        const timeout = parseInt(el.dataset.timeout || '10000', 10);
+        const t = setTimeout(() => {
+          el.classList.add('fade-out');
+          setTimeout(() => el.remove(), 450);
+        }, timeout);
+        const btn = el.querySelector('.close');
+        if (btn) {
+          btn.addEventListener('click', function() {
+            clearTimeout(t);
+            el.classList.add('fade-out');
+            setTimeout(() => el.remove(), 260);
+          });
+        }
+      });
+    })();
   </script>
 </body>
 </html>
