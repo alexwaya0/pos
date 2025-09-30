@@ -151,42 +151,6 @@
     </div>
   </div>
 
-  <!-- Product Table -->
-  <div class="table-container">
-    <h3 class="mb-4 text-teal">Products</h3>
-    <div class="mb-4">
-      <input type="text" id="search" placeholder="Search products..." class="w-full">
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Category</th>
-          <th>Price (KES)</th>
-          <th>Min Price (KES)</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="product-table">
-        {% for product in products %}
-          <tr data-name="{{ product.name|lower }}">
-            <td>{{ product.name }}</td>
-            <td>{{ product.category }}</td>
-            <td>{{ product.price|floatformat:2 }}</td>
-            <td>{{ product.min_price|floatformat:2 }}</td>
-            <td>
-              <a href="{% url 'pos:sale_create' %}?product={{ product.id }}" class="sell-btn">Sell</a>
-            </td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="5" class="text-center text-gray-500">No products available</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
   <!-- Role-Specific Data -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
     {% if role == 'cashier' %}
