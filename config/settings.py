@@ -141,3 +141,9 @@ POS_THEME = {
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
+
+
+# Customizing Admin Site Appearance for Amigo POS™
+ADMIN_SITE_HEADER = "Amigo POS™ Administration"
+ADMIN_SITE_TITLE = "Amigo POS™ Admin"
+ADMIN_INDEX_TITLE = "Welcome to Amigo POS™ Dashboard"
