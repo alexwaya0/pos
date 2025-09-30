@@ -1,51 +1,156 @@
 {% extends "pos/base.html" %}
+{% load static %}
 {% block title %}Add Product{% endblock %}
 {% block page_title %}Add Product & Stock{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* Color Scheme & Typography */
+  body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #f8f9fa; 
+  }
+  .teal-color { color: #006666; }
+  .gold-color { color: #D4A017; }
+  .teal-bg { background-color: #006666; }
+
+  /* Modern Card Container */
+  .modern-card {
+    background-color: #ffffff;
+    border-radius: 16px; 
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); 
+    padding: 32px; 
+    max-width: 800px; /* Limit width for readability */
+    margin: 40px auto; /* Center the card */
+  }
+
+  /* Advanced Input Styling (Applied to all form fields) */
+  .form-input-control {
+    border: 1px solid #d1d5db; /* Light gray border */
+    border-radius: 8px;
+    padding: 12px 16px;
+    width: 100%;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    font-size: 1rem;
+    line-height: 1.5; 
+    appearance: none; /* For select elements */
+  }
+  .form-input-control:focus {
+    border-color: #D4A017; /* Gold focus color */
+    outline: none;
+    box-shadow: 0 0 5px rgba(212, 160, 23, 0.5);
+  }
+
+  /* Form Group Spacing and Labels */
+  .form-group label {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #374151; /* Darker gray for labels */
+      margin-bottom: 6px;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-  <form method="post" class="space-y-4 bg-white p-6 rounded shadow">
+<div class="container mx-auto p-4">
+  <form method="post" class="modern-card space-y-8" aria-label="Add New Product and Stock Form">
     {% csrf_token %}
-    <div class="grid grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm">Name</label>
-        {{ form.name }}
+    
+    <div class="space-y-4 border-b pb-6">
+      <h2 class="text-2xl font-semibold teal-color">Product Details</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <div class="form-group">
+          <label for="{{ form.name.id_for_label }}">Name</label>
+          {{ form.name|safe }}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.category.id_for_label }}">Category</label>
+          {{ form.category|safe }}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.price.id_for_label }}">Price (KES)</label>
+          {{ form.price|safe }}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ form.min_price.id_for_label }}">Min Price (KES)</label>
+          {{ form.min_price|safe }}
+        </div>
+        
       </div>
-      <div>
-        <label class="block text-sm">Category</label>
-        {{ form.category }}
-      </div>
-      <div>
-        <label class="block text-sm">Price (KES)</label>
-        {{ form.price }}
-      </div>
-      <div>
-        <label class="block text-sm">Min Price (KES)</label>
-        {{ form.min_price }}
+    </div>
+    
+    <div class="space-y-4">
+      <h2 class="text-2xl font-semibold teal-color">Stock Information</h2>
+      {% if stock_form.non_field_errors %}
+          <div class="text-sm text-red-500 font-medium">
+              {{ stock_form.non_field_errors }}
+          </div>
+      {% endif %}
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <div class="form-group">
+          <label for="{{ stock_form.branch.id_for_label }}">Branch</label>
+          {{ stock_form.branch|safe }}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ stock_form.batch.id_for_label }}">Batch</label>
+          {{ stock_form.batch|safe }}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ stock_form.expiry_date.id_for_label }}">Expiry Date</label>
+          {{ stock_form.expiry_date|safe }}
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ stock_form.quantity.id_for_label }}">Quantity</label>
+          {{ stock_form.quantity|safe }}
+        </div>
+        
       </div>
     </div>
 
-    <h3 class="font-semibold mt-4">Stock info</h3>
-    <div class="grid grid-cols-2 gap-4 mt-2">
-      {{ stock_form.non_field_errors }}
-      <div>
-        <label>Branch</label>
-        {{ stock_form.branch }}
-      </div>
-      <div>
-        <label>Batch</label>
-        {{ stock_form.batch }}
-      </div>
-      <div>
-        <label>Expiry Date</label>
-        {{ stock_form.expiry_date }}
-      </div>
-      <div>
-        <label>Quantity</label>
-        {{ stock_form.quantity }}
-      </div>
-    </div>
-
-    <div>
-      <button class="px-4 py-2 rounded bg-green-700 text-white">Add Product</button>
+    <div class="pt-4 flex justify-end">
+      <button type="submit" class="px-6 py-3 rounded-xl font-semibold text-white teal-bg transition duration-300 ease-in-out shadow-lg"
+        onmouseover="this.style.backgroundColor='#1F7A5F'; this.style.boxShadow='0 6px 15px rgba(31, 122, 95, 0.4)'"
+        onmouseout="this.style.backgroundColor='#006666'; this.style.boxShadow='0 10px 30px rgba(0, 0, 0, 0.1)'"
+        aria-label="Submit Form">
+        Add Product & Stock
+      </button>
     </div>
   </form>
+</div>
+
+<script>
+    // 1. Identify all form fields (inputs, selects, textareas)
+    const formFields = document.querySelectorAll('input, select, textarea');
+
+    // 2. Loop through them and apply the common class
+    formFields.forEach(field => {
+        // Exclude hidden inputs that Django uses for internal tracking
+        if (field.type !== 'hidden') {
+            // Apply the class, avoiding double application if it was already set in forms.py
+            if (!field.classList.contains('form-input-control')) {
+                field.classList.add('form-input-control');
+            }
+        }
+    });
+
+    // Note on Django Field Rendering:
+    // We are relying on Django's default rendering of {{ form.field }} to output the
+    // base HTML widget. If you need to enforce attributes like 'placeholder' or 'type'
+    // for fields that are not automatically styled (e.g., date pickers), you would
+    // either need to update forms.py OR manually render the HTML as we did in the
+    // previous template. The JS injection above provides a good, simple workaround
+    // to apply the styling class across the board.
+</script>
 {% endblock %}
