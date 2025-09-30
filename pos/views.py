@@ -6,8 +6,10 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.urls import reverse
 from decimal import Decimal
+from django.db.models import Sum
 from .models import Branch, Product, ProductStock, Customer, Sale, SaleItem
 from .forms import ProductForm, ProductStockForm, SaleCreateForm
+from datetime import timedelta
 
 def in_group(user, group_name):
     return user.groups.filter(name=group_name).exists() or user.is_superuser
@@ -20,8 +22,85 @@ def is_manager(user):
 
 @login_required
 def dashboard(request):
-    branches = Branch.objects.all()
-    context = {"branches": branches}
+    # Determine user role
+    if request.user.is_superuser:
+        role = 'admin'
+    elif is_manager(request.user):
+        role = 'manager'
+    elif is_cashier(request.user):
+        role = 'cashier'
+    else:
+        role = 'cashier'  # Default to cashier if no specific role
+
+    # Common context
+    context = {
+        'role': role,
+        'products': Product.objects.all(),
+        'categories': Product.objects.values('category').distinct(),
+    }
+
+    # Branch-specific data for cashier and manager
+    if role in ['cashier', 'manager']:
+        try:
+            branch = request.user.profile.branch
+        except AttributeError:
+            messages.error(request, "User profile or branch not set.")
+            return redirect('pos:product_list')
+
+        # Today's sales
+        today = timezone.localdate()
+        today_sales = Sale.objects.filter(branch=branch, created_at__date=today).aggregate(total=Sum('total'))['total'] or 0
+        context['today_sales'] = today_sales
+
+        # Low stock and near expiry
+        low_stock_threshold = 10  # Hardcoded, adjust as needed
+        expiry_days_threshold = 60  # Hardcoded, adjust as needed
+        low_stocks = ProductStock.objects.filter(branch=branch, quantity__lte=low_stock_threshold)
+        near_expiries = ProductStock.objects.filter(
+            branch=branch,
+            expiry_date__lte=today + timedelta(days=expiry_days_threshold),
+            expiry_date__isnull=False
+        )
+        context.update({
+            'low_stocks': low_stocks,
+            'near_expiries': near_expiries,
+            'sales_summary': Sale.objects.filter(branch=branch).aggregate(total=Sum('total'))['total'] or 0 if role == 'manager' else None
+        })
+
+    # Admin-specific data
+    if role == 'admin':
+        branches = Branch.objects.all()
+        branch_sales = {
+            b.name: Sale.objects.filter(branch=b).aggregate(total=Sum('total'))['total'] or 0
+            for b in branches
+        }
+        # Mock notifications: combine low stock and expiry across all branches
+        low_stock_threshold = 10
+        expiry_days_threshold = 60
+        today = timezone.localdate()
+        low_stocks = ProductStock.objects.filter(quantity__lte=low_stock_threshold)
+        near_expiries = ProductStock.objects.filter(
+            expiry_date__lte=today + timedelta(days=expiry_days_threshold),
+            expiry_date__isnull=False
+        )
+        notifications = []
+        for stock in low_stocks:
+            notifications.append({
+                'message': f"Low stock: {stock.product.name} ({stock.quantity} units) at {stock.branch.name}",
+                'created': today
+            })
+        for stock in near_expiries:
+            notifications.append({
+                'message': f"Near expiry: {stock.product.name} on {stock.expiry_date} at {stock.branch.name}",
+                'created': today
+            })
+        context.update({
+            'branch_sales': branch_sales,
+            'notifications': notifications,
+            'low_stocks': low_stocks,
+            'near_expiries': near_expiries
+        })
+
     return render(request, "pos/dashboard.html", context)
 
 @login_required
@@ -54,7 +133,12 @@ def product_add(request):
 def sale_create(request):
     """
     Basic sale creation without barcode. Frontend will POST items list as JSON or form fields.
+    Supports pre-selected product from dashboard.
     """
+    preselected_product = None
+    if 'product' in request.GET:
+        preselected_product = get_object_or_404(Product, pk=request.GET.get('product'))
+
     if request.method == "POST":
         # items posted as product_{id}_qty and product_{id}_price or we can accept a simple structure
         # For simplicity, expect form fields: branch, customer_phone, customer_name, notes
@@ -124,7 +208,11 @@ def sale_create(request):
     else:
         form = SaleCreateForm()
     products = Product.objects.all()
-    return render(request, "pos/sale_create.html", {"form": form, "products": products})
+    return render(request, "pos/sale_create.html", {
+        "form": form,
+        "products": products,
+        "preselected_product": preselected_product
+    })
 
 @login_required
 def receipt_view(request, sale_id):
