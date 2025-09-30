@@ -1,14 +1,435 @@
-{% extends "pos/base.html" %}
-{% block content %}
-  <div class="max-w-md mx-auto mt-24">
-    <form method="post" class="bg-white p-6 rounded shadow">
-      {% csrf_token %}
-      <h2 class="text-lg font-semibold mb-4">Login</h2>
-      {{ form.username.label_tag }}{{ form.username }}
-      {{ form.password.label_tag }}{{ form.password }}
-      <div class="mt-4">
-        <button class="px-3 py-2 rounded bg-green-800 text-white">Login</button>
-      </div>
-    </form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Amigo POS™ - Login</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Montserrat', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial'],
+          },
+        },
+      },
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --darkgreen: #064420;
+      --gold: #D4AF37;
+      --gold-dark: #b8962c;
+      --darkgreen-hover: #085a2f;
+      --pure-material-primary-rgb: 212, 175, 55; /* Gold for primary */
+      --pure-material-onsurface-rgb: 17, 24, 39; /* Gray-900 */
+    }
+
+    body {
+      font-family: Montserrat, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: #f3f4f6;
+      color: #111827;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      background: var(--darkgreen);
+      color: #ffffff;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--darkgreen-hover);
+    }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Error alert styling */
+    .error-alert {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: flex-start;
+      padding: 0.85rem 1rem;
+      border-radius: 0.5rem;
+      background: #fef2f2;
+      color: #991b1b;
+      margin-bottom: 0.75rem;
+      box-shadow: 0 6px 18px rgba(15,23,42,.06);
+    }
+    .error-alert .close {
+      background: transparent;
+      border: 0;
+      font-size: 1rem;
+      cursor: pointer;
+      color: #991b1b;
+    }
+
+    .fade-out {
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+
+    /* Pure CSS Material Outlined Textfield Styles */
+    .pure-material-textfield-outlined {
+      --pure-material-safari-helper1: rgb(var(--pure-material-primary-rgb));
+      position: relative;
+      display: inline-block;
+      padding-top: 6px;
+      font-size: 16px;
+      line-height: 1.5;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .pure-material-textfield-outlined > input {
+      box-sizing: border-box;
+      margin: 0;
+      border: solid 1px;
+      border-color: rgba(var(--pure-material-onsurface-rgb), 0.6);
+      border-top-color: transparent;
+      border-radius: 4px 4px 0 0;
+      padding: 15px 52px 15px 13px;
+      width: 100%;
+      height: inherit;
+      color: rgba(var(--pure-material-onsurface-rgb), 0.87);
+      background-color: transparent;
+      box-shadow: none;
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
+      caret-color: rgb(var(--pure-material-primary-rgb));
+      transition: box-shadow 0.2s;
+    }
+
+    .pure-material-textfield-outlined > input + span {
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: flex;
+      border-color: rgba(var(--pure-material-onsurface-rgb), 0.6);
+      width: 100%;
+      max-height: 100%;
+      color: rgba(var(--pure-material-onsurface-rgb), 0.6);
+      font-size: 75%;
+      line-height: 15px;
+      cursor: text;
+      transition: color 0.2s, font-size 0.2s, line-height 0.2s;
+    }
+
+    .pure-material-textfield-outlined > input + span::before,
+    .pure-material-textfield-outlined > input + span::after {
+      content: "";
+      display: block;
+      box-sizing: border-box;
+      margin-top: 6px;
+      border-top: solid 1px;
+      border-top-color: rgba(var(--pure-material-onsurface-rgb), 0.6);
+      min-width: 10px;
+      height: 8px;
+      pointer-events: none;
+      box-shadow: inset 0 1px transparent;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .pure-material-textfield-outlined > input + span::before {
+      margin-right: 4px;
+      border-left: solid 1px transparent;
+      border-radius: 4px 0;
+    }
+
+    .pure-material-textfield-outlined > input + span::after {
+      flex-grow: 1;
+      margin-left: 4px;
+      border-right: solid 1px transparent;
+      border-radius: 0 4px;
+    }
+
+    .pure-material-textfield-outlined:hover > input {
+      border-color: rgba(var(--pure-material-onsurface-rgb), 0.87);
+      border-top-color: transparent;
+    }
+
+    .pure-material-textfield-outlined:hover > input + span::before,
+    .pure-material-textfield-outlined:hover > input + span::after {
+      border-top-color: rgba(var(--pure-material-onsurface-rgb), 0.87);
+    }
+
+    .pure-material-textfield-outlined:hover > input:not(:focus):placeholder-shown + span {
+      color: rgba(var(--pure-material-onsurface-rgb), 0.87);
+    }
+
+    .pure-material-textfield-outlined > input:focus {
+      border-color: rgba(var(--pure-material-onsurface-rgb), 0.6);
+      border-top-color: transparent;
+      box-shadow: inset 0 -2px rgb(var(--pure-material-primary-rgb));
+    }
+
+    .pure-material-textfield-outlined > input:focus + span {
+      color: rgb(var(--pure-material-primary-rgb));
+    }
+
+    .pure-material-textfield-outlined > input:focus + span::before,
+    .pure-material-textfield-outlined > input:focus + span::after {
+      border-top-color: rgba(var(--pure-material-onsurface-rgb), 0.6);
+      box-shadow: inset 0 1px rgb(var(--pure-material-primary-rgb));
+    }
+
+    .pure-material-textfield-outlined > input:disabled,
+    .pure-material-textfield-outlined > input:disabled + span {
+      border-color: rgba(var(--pure-material-onsurface-rgb), 0.38) !important;
+    }
+
+    .pure-material-textfield-outlined > input:disabled + span {
+      color: rgba(var(--pure-material-onsurface-rgb), 0.38);
+    }
+
+    .pure-material-textfield-outlined > input:disabled + span::before,
+    .pure-material-textfield-outlined > input:disabled + span::after {
+      border-top-color: rgba(var(--pure-material-onsurface-rgb), 0.38) !important;
+    }
+
+    .pure-material-textfield-outlined > input:disabled:placeholder-shown,
+    .pure-material-textfield-outlined > input:disabled:placeholder-shown + span {
+      color: rgba(var(--pure-material-onsurface-rgb), 0.38);
+    }
+
+    .pure-material-textfield-outlined > input:disabled:placeholder-shown + span {
+      font-size: 16px;
+      line-height: 68px;
+    }
+
+    .pure-material-textfield-outlined > input:disabled:placeholder-shown + span::before,
+    .pure-material-textfield-outlined > input:disabled:placeholder-shown + span::after {
+      border-top-color: transparent !important;
+    }
+
+    .pure-material-textfield-outlined.error > input {
+      border-color: #ef5350 !important;
+      box-shadow: inset 0 -2px #ef5350;
+    }
+
+    .pure-material-textfield-outlined.error > input + span {
+      color: #ef5350;
+    }
+
+    .pure-material-textfield-outlined.error > input + span::before,
+    .pure-material-textfield-outlined.error > input + span::after {
+      border-top-color: #ef5350 !important;
+      box-shadow: inset 0 1px #ef5350;
+    }
+
+    .pure-material-textfield-outlined .leading-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(var(--pure-material-onsurface-rgb), 0.6);
+      transition: color 0.2s;
+    }
+
+    .pure-material-textfield-outlined .trailing-icon {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(var(--pure-material-onsurface-rgb), 0.6);
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .pure-material-textfield-outlined > input:focus ~ .leading-icon,
+    .pure-material-textfield-outlined > input:focus ~ .trailing-icon {
+      color: rgb(var(--pure-material-primary-rgb));
+    }
+
+    .pure-material-textfield-outlined.has-leading-icon > input {
+      padding-left: 48px;
+    }
+
+    .pure-material-textfield-outlined.has-trailing-icon > input {
+      padding-right: 48px;
+    }
+
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+    .animate-ripple {
+      animation: ripple 0.6s linear;
+    }
+  </style>
+</head>
+<body>
+  <div class="max-w-md w-full px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl border border-gray-100 flex flex-col items-center">
+      <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Amigo POS™</h2>
+      <p class="text-sm text-gray-500 mb-4">Tuesday, September 30, 2025, 05:01 AM EAT</p>
+      <form method="post" class="w-full space-y-6" id="login-form" novalidate>
+        {% csrf_token %}
+        <!-- Non-field errors -->
+        {% if form.non_field_errors %}
+          <div id="non-field-errors" class="error-alert" data-timeout="10000" role="alert">
+            <div>
+              <div class="font-semibold">Error</div>
+              {% for error in form.non_field_errors %}
+                <div class="text-sm">{{ error }}</div>
+              {% endfor %}
+            </div>
+            <button class="close" aria-label="Dismiss">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+        {% endif %}
+        <label class="pure-material-textfield-outlined has-leading-icon {% if form.username.errors %}error{% endif %}">
+          <input
+            type="text"
+            id="id_username"
+            name="username"
+            placeholder=" "
+            required
+            aria-describedby="{% if form.username.errors %}username-error{% endif %}"
+          >
+          <span>Username</span>
+          <i data-lucide="user" class="leading-icon w-5 h-5"></i>
+        </label>
+        {% if form.username.errors %}
+          <div id="username-error" class="error-alert mt-[-1rem]" data-timeout="10000" role="alert">
+            <div>
+              <div class="font-semibold">Username Error</div>
+              {% for error in form.username.errors %}
+                <div class="text-sm">{{ error }}</div>
+              {% endfor %}
+            </div>
+            <button class="close" aria-label="Dismiss">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+        {% endif %}
+        <label class="pure-material-textfield-outlined has-leading-icon has-trailing-icon {% if form.username.errors %}error{% endif %}">
+          <input
+            type="password"
+            id="id_password"
+            name="password"
+            placeholder=" "
+            required
+            aria-describedby="{% if form.password.errors %}password-error{% endif %}"
+          >
+          <span>Password</span>
+          <i data-lucide="lock" class="leading-icon w-5 h-5"></i>
+          <i data-lucide="eye" class="trailing-icon w-5 h-5" id="toggle-password"></i>
+        </label>
+        {% if form.password.errors %}
+          <div id="password-error" class="error-alert mt-[-1rem]" data-timeout="10000" role="alert">
+            <div>
+              <div class="font-semibold">Password Error</div>
+              {% for error in form.password.errors %}
+                <div class="text-sm">{{ error }}</div>
+              {% endfor %}
+            </div>
+            <button class="close" aria-label="Dismiss">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+        {% endif %}
+        <div>
+          <button
+            type="submit"
+            class="btn-primary w-full justify-center relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed"
+            id="login-button"
+          >
+            <span class="relative z-10 flex items-center justify-center gap-2">
+              <i data-lucide="log-in" class="w-4 h-4"></i>
+              <span>Login</span>
+            </span>
+            <span class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-lg"></span>
+            <span class="hidden absolute inset-0 flex items-center justify-center z-20" id="loading-spinner">
+              <i data-lucide="loader-circle" class="w-5 h-5 animate-spin"></i>
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
-{% endblock %}
+
+  <script>
+    // Initialize Lucide icons
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+      lucide.createIcons();
+    } else {
+      window.addEventListener('load', () => { if (window.lucide) lucide.createIcons(); });
+    }
+
+    // Ripple effect for button
+    document.querySelectorAll('.btn-primary').forEach(button => {
+      button.addEventListener('click', function(e) {
+        if (button.disabled) return;
+        const ripple = document.createElement('span');
+        ripple.classList.add('absolute', 'rounded-full', 'bg-white', 'opacity-25', 'scale-0', 'animate-ripple');
+        const rect = button.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        ripple.style.width = ripple.style.height = `${size}px`;
+        ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+        ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+        button.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+      });
+    });
+
+    // Loading state for form submission
+    document.getElementById('login-form').addEventListener('submit', function() {
+      const button = document.getElementById('login-button');
+      const spinner = document.getElementById('loading-spinner');
+      button.disabled = true;
+      button.querySelector('span.z-10').classList.add('opacity-0');
+      spinner.classList.remove('hidden');
+    });
+
+    // Password visibility toggle
+    const passwordInput = document.getElementById('id_password');
+    const togglePassword = document.getElementById('toggle-password');
+    togglePassword.addEventListener('click', function() {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      this.setAttribute('data-lucide', type === 'password' ? 'eye' : 'eye-off');
+      lucide.createIcons({icons: { [type === 'password' ? 'eye' : 'eye-off']: this }});
+    });
+
+    // Error messages auto-dismiss and manual close
+    document.querySelectorAll('.error-alert').forEach(function(el) {
+      const timeout = parseInt(el.dataset.timeout || '10000', 10);
+      const t = setTimeout(() => {
+        el.classList.add('fade-out');
+        setTimeout(() => el.remove(), 350);
+      }, timeout);
+      const btn = el.querySelector('.close');
+      if (btn) {
+        btn.addEventListener('click', function() {
+          clearTimeout(t);
+          el.classList.add('fade-out');
+          setTimeout(() => el.remove(), 350);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
