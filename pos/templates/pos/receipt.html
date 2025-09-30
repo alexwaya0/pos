@@ -1,0 +1,47 @@
+{% extends "pos/base.html" %}
+{% block title %}Receipt #{{ sale.id }}{% endblock %}
+{% block page_title %}Receipt #{{ sale.id }}{% endblock %}
+{% block content %}
+<div class="bg-white p-6 rounded shadow max-w-2xl mx-auto">
+  <div class="flex justify-between items-center">
+    <div>
+      <h2 class="text-xl font-bold">{{ sale.branch.name }}</h2>
+      <p class="text-sm">Phone: {{ sale.branch.phone }}</p>
+      <p class="text-sm">{{ sale.branch.address }}</p>
+    </div>
+    <div class="text-right">
+      <div class="font-semibold">Receipt #{{ sale.id }}</div>
+      <div class="text-sm">{{ sale.created_at }}</div>
+    </div>
+  </div>
+
+  <hr class="my-4">
+
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-left text-gray-600">
+        <th>Item</th><th>Qty</th><th>Unit</th><th class="text-right">Line</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in sale.items.all %}
+        <tr>
+          <td>{{ it.product.name }}</td>
+          <td>{{ it.qty }}</td>
+          <td>KES {{ it.unit_price }}</td>
+          <td class="text-right">KES {{ it.line_total }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="mt-4 text-right font-semibold">
+    Total: KES {{ sale.total }}
+  </div>
+
+  <div class="mt-6 flex justify-end space-x-3">
+    <button onclick="window.print()" class="px-3 py-2 rounded bg-green-800 text-white">Print / Save PDF</button>
+    <a href="{% url 'pos:dashboard' %}" class="px-3 py-2 rounded bg-gray-200">Close</a>
+  </div>
+</div>
+{% endblock %}

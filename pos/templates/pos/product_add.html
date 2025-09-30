@@ -1,0 +1,51 @@
+{% extends "pos/base.html" %}
+{% block title %}Add Product{% endblock %}
+{% block page_title %}Add Product & Stock{% endblock %}
+{% block content %}
+  <form method="post" class="space-y-4 bg-white p-6 rounded shadow">
+    {% csrf_token %}
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm">Name</label>
+        {{ form.name }}
+      </div>
+      <div>
+        <label class="block text-sm">Category</label>
+        {{ form.category }}
+      </div>
+      <div>
+        <label class="block text-sm">Price (KES)</label>
+        {{ form.price }}
+      </div>
+      <div>
+        <label class="block text-sm">Min Price (KES)</label>
+        {{ form.min_price }}
+      </div>
+    </div>
+
+    <h3 class="font-semibold mt-4">Stock info</h3>
+    <div class="grid grid-cols-2 gap-4 mt-2">
+      {{ stock_form.non_field_errors }}
+      <div>
+        <label>Branch</label>
+        {{ stock_form.branch }}
+      </div>
+      <div>
+        <label>Batch</label>
+        {{ stock_form.batch }}
+      </div>
+      <div>
+        <label>Expiry Date</label>
+        {{ stock_form.expiry_date }}
+      </div>
+      <div>
+        <label>Quantity</label>
+        {{ stock_form.quantity }}
+      </div>
+    </div>
+
+    <div>
+      <button class="px-4 py-2 rounded bg-green-700 text-white">Add Product</button>
+    </div>
+  </form>
+{% endblock %}

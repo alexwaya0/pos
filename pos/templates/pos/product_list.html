@@ -1,0 +1,21 @@
+{% extends "pos/base.html" %}
+{% block title %}Products{% endblock %}
+{% block page_title %}Products{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'pos:product_add' %}" class="px-3 py-2 rounded bg-green-800 text-white">Add Product</a>
+</div>
+
+<div class="grid grid-cols-3 gap-4">
+  {% for p in products %}
+    <div class="bg-white p-4 rounded shadow">
+      <h4 class="font-semibold">{{ p.name }}</h4>
+      <p class="text-sm text-gray-500">{{ p.category }}</p>
+      <div class="mt-3">
+        <div>Price: KES {{ p.price }}</div>
+        <div>Min: KES {{ p.min_price }}</div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

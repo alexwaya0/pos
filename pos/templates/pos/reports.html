@@ -1,0 +1,22 @@
+{% extends "pos/base.html" %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block content %}
+  <div class="space-y-4">
+    {% for row in data %}
+      <div class="bg-white p-4 rounded shadow">
+        <div class="flex justify-between">
+          <div>
+            <h4 class="font-semibold">{{ row.branch.name }}</h4>
+            <div class="text-sm text-gray-500">{{ row.branch.address }}</div>
+          </div>
+          <div class="text-right">
+            <div>Opening: KES {{ row.opening }}</div>
+            <div>Sales: KES {{ row.sales }}</div>
+            <div class="font-bold">Closing: KES {{ row.closing }}</div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

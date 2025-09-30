@@ -1,0 +1,47 @@
+<div class="w-72 sidebar min-h-screen text-white p-6">
+  <div class="mb-8">
+    <div class="flex items-center space-x-3">
+      <div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+        <!-- simple pill icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v8m4-4H8" stroke="#fff"/>
+        </svg>
+      </div>
+      <div>
+        <div class="text-lg font-bold">{{ settings.POS_THEME.BRAND }}</div>
+        <div class="text-sm text-gray-200">Kenya • Cash POS</div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="space-y-2">
+    <a href="{% url 'pos:dashboard' %}" class="block p-3 rounded hover:bg-white/10">
+      <!-- home icon -->
+      <div class="flex items-center space-x-3">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10l9-7 9 7v8a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg>
+        <span>Dashboard</span>
+      </div>
+    </a>
+
+    <a href="{% url 'pos:product_list' %}" class="block p-3 rounded hover:bg-white/10">
+      <div class="flex items-center space-x-3">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V7a2 2 0 0 0-2-2h-4l-2-2-2 2H6a2 2 0 0 0-2 2v6" /></svg>
+        <span>Products</span>
+      </div>
+    </a>
+
+    <a href="{% url 'pos:sale_create' %}" class="block p-3 rounded hover:bg-white/10">
+      <div class="flex items-center space-x-3">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M7 7v14m10-14v14"/></svg>
+        <span>New Sale</span>
+      </div>
+    </a>
+
+    <a href="{% url 'pos:reports' %}" class="block p-3 rounded hover:bg-white/10">
+      <div class="flex items-center space-x-3">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6m-6 0H5a2 2 0 01-2-2V7a2 2 0 012-2h2"/></svg>
+        <span>Reports</span>
+      </div>
+    </a>
+  </nav>
+</div>

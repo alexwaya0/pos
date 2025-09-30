@@ -1,0 +1,139 @@
+{% extends "pos/base.html" %}
+{% block title %}New Sale{% endblock %}
+{% block page_title %}New Sale{% endblock %}
+
+{% block extra_head %}
+<style>
+  .product-card { cursor: pointer; transition: transform .08s; }
+  .product-card:hover{ transform: translateY(-3px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-3 gap-6">
+  <div class="col-span-2">
+    <div class="bg-white p-4 rounded shadow mb-4">
+      <form id="sale-form" method="post">
+        {% csrf_token %}
+        {{ form.branch.label_tag }} {{ form.branch }}
+        <div class="mt-2">
+          <label>Customer phone</label>
+          {{ form.customer_phone }}
+        </div>
+        <div class="mt-2">
+          <label>Customer name</label>
+          {{ form.customer_name }}
+        </div>
+
+        <h3 class="mt-4 font-semibold">Items</h3>
+        <div id="items" class="space-y-2"></div>
+
+        <div class="mt-4">
+          <label>Notes</label>
+          {{ form.notes }}
+        </div>
+
+        <div class="mt-4">
+          <div class="flex items-center space-x-4">
+            <div>Total: <span id="total">KES 0.00</span></div>
+            <button type="button" class="px-3 py-1 bg-yellow-600 text-white rounded" id="add-customer-email">Email Receipt (if email)</button>
+            <button type="submit" class="px-4 py-2 bg-green-800 text-white rounded">Record Sale</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="bg-white p-4 rounded shadow">
+      <h4 class="font-semibold">Products</h4>
+      <div class="grid grid-cols-3 gap-3 mt-3 max-h-96 overflow-auto">
+        {% for p in products %}
+          <div class="product-card p-3 border rounded" data-id="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ p.price }}" data-min="{{ p.min_price }}">
+            <div class="font-medium">{{ p.name }}</div>
+            <div class="text-sm text-gray-500">KES {{ p.price }}</div>
+            <div class="text-xs text-gray-400">min: KES {{ p.min_price }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="bg-white p-4 rounded shadow">
+      <h4 class="font-semibold">Quick actions</h4>
+      <div class="mt-4 space-y-2">
+        <a class="block px-3 py-2 bg-blue-600 text-white rounded" href="{% url 'pos:product_add' %}">Add Product</a>
+        <a class="block px-3 py-2 bg-gray-200 rounded" href="{% url 'pos:product_list' %}">Product List</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // simple client-side logic to add items to the sale
+  const products = document.querySelectorAll('.product-card');
+  const itemsContainer = document.getElementById('items');
+  const totalEl = document.getElementById('total');
+  let total = 0.0;
+
+  function recalc(){
+    total = 0;
+    itemsContainer.querySelectorAll('.sale-item').forEach(function(it){
+      const price = parseFloat(it.querySelector('.unit-price').value || 0);
+      const qty = parseInt(it.querySelector('.qty').value || 0);
+      const line = price * qty;
+      it.querySelector('.line-total').innerText = 'KES ' + line.toFixed(2);
+      total += line;
+    });
+    totalEl.innerText = 'KES ' + total.toFixed(2);
+  }
+
+  products.forEach(p => {
+    p.addEventListener('click', () => {
+      const id = p.dataset.id;
+      const name = p.dataset.name;
+      const price = parseFloat(p.dataset.price);
+      const minprice = parseFloat(p.dataset.min);
+
+      // create item card
+      const div = document.createElement('div'); div.className='sale-item bg-gray-50 p-3 rounded flex justify-between items-center';
+      div.innerHTML = `
+        <div>
+          <input type="hidden" name="item-__idx__-product_id" class="product-id" value="${id}">
+          <div class="font-medium">${name}</div>
+          <div class="text-xs">unit price KES <input name="item-__idx__-unit_price" class="unit-price border p-1 rounded w-32" value="${price}"> (min: KES ${minprice})</div>
+        </div>
+        <div class="text-right">
+          <div>Qty <input name="item-__idx__-qty" class="qty border p-1 rounded w-16" value="1"></div>
+          <div class="line-total mt-2">KES ${(price*1).toFixed(2)}</div>
+          <button type="button" class="remove mt-2 text-sm text-red-600">Remove</button>
+        </div>
+      `;
+      itemsContainer.appendChild(div);
+
+      // replace __idx__ with index
+      const idx = Array.from(itemsContainer.querySelectorAll('.sale-item')).indexOf(div);
+      div.innerHTML = div.innerHTML.replace(/__idx__/g, idx);
+
+      // events
+      div.querySelector('.qty').addEventListener('input', recalc);
+      div.querySelector('.unit-price').addEventListener('input', function(){
+        // enforce min price on client side; server side also enforces
+        const val = parseFloat(this.value || 0);
+        if (val < minprice){
+          alert('Price cannot be lower than min price: KES ' + minprice);
+          this.value = minprice.toFixed(2);
+        }
+        recalc();
+      });
+      div.querySelector('.remove').addEventListener('click', ()=>{ div.remove(); recalc(); });
+
+      recalc();
+    });
+  });
+
+  // on submit, ensure dynamic fields names are consistent indexes => already set in template replacement above
+  document.getElementById('sale-form').addEventListener('submit', function(e){
+    // nothing special here; server expects item-0..., item-1...
+  });
+</script>
+{% endblock %}
