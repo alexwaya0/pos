@@ -20,28 +20,42 @@
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     padding: 16px;
+    overflow-x: auto;
   }
   table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 600px;
   }
   th, td {
-    padding: 12px;
+    padding: 12px 16px;
     text-align: left;
     border-bottom: 1px solid #e2e8f0;
   }
   th {
-    background-color: #006666;
+    background: linear-gradient(135deg, #006666 0%, #1F7A5F 100%);
     color: #ffffff;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
+    position: sticky;
+    top: 0;
+    z-index: 10;
   }
   th:hover {
-    background-color: #1F7A5F;
+    background: linear-gradient(135deg, #1F7A5F 0%, #006666 100%);
+    transform: translateY(-1px);
+  }
+  tr {
+    transition: background-color 0.2s ease;
+  }
+  tr:nth-child(even) {
+    background-color: #f8fafc;
   }
   tr:hover {
-    background-color: #f0f4f8;
+    background-color: #e0f2fe;
+    transform: scale(1.01);
   }
   .filter-container {
     display: grid;
@@ -88,6 +102,10 @@
     height: 12px;
     margin-left: 4px;
     vertical-align: middle;
+    transition: transform 0.2s ease;
+  }
+  th:hover .sort-icon {
+    transform: rotate(180deg);
   }
   .collapsible-header {
     cursor: pointer;
@@ -106,11 +124,20 @@
     width: 100%;
     max-width: 300px;
     margin-bottom: 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: border-color 0.2s ease;
+  }
+  .search-input:focus {
+    border-color: #006666;
+    outline: none;
   }
   .no-data {
     text-align: center;
     color: #666;
     padding: 20px;
+    font-style: italic;
   }
   .profit-positive {
     color: #10b981 !important; /* Green for positive profit */
@@ -151,10 +178,36 @@
     margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 0 0 12px 12px;
+  }
+  .pagination select, .pagination button {
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 4px 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .pagination button:hover:not(:disabled) {
+    background: #006666;
+    color: white;
+  }
+  .pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
   .row-num {
     font-weight: bold;
     text-align: center;
+    width: 50px;
+    background: #f0f9ff;
+    color: #006666;
+  }
+  .row-num-header {
+    background: linear-gradient(135deg, #006666 0%, #1F7A5F 100%);
+    color: white;
+    font-weight: 600;
     width: 50px;
   }
   @media (max-width: 768px) {
@@ -217,7 +270,7 @@
         </select>
       </div>
       <div class="flex items-end gap-2">
-        <button type="submit" class="btn-primary">Apply Filters</button>
+        <button type="button" class="btn-primary" onclick="submitFilters()">Apply Filters</button>
         <button type="button" class="reset" onclick="resetFilters()">Reset Filters</button>
       </div>
     </div>
@@ -284,7 +337,7 @@
       <table id="stock-table">
         <thead>
           <tr>
-            <th>#</th>
+            <th class="row-num-header">#</th>
             <th data-sort="product_name">Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
             <th data-sort="opening">Opening Stock <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
             <th data-sort="sold">Sold <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
@@ -324,7 +377,7 @@
       <table id="low-stock-table">
         <thead>
           <tr>
-            <th>#</th>
+            <th class="row-num-header">#</th>
             <th data-sort="product">Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
             <th data-sort="quantity">Quantity <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
             <th data-sort="branch">Branch <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
@@ -360,7 +413,7 @@
       <table id="expiry-table">
         <thead>
           <tr>
-            <th>#</th>
+            <th class="row-num-header">#</th>
             <th data-sort="product">Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
             <th data-sort="expiry_date">Expiry Date <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
             <th data-sort="branch">Branch <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
@@ -390,17 +443,21 @@
 <script>
   // Chart Data from Django Context (initial load)
   const initialDates = [{% for d in daily_data %}'{{ d.date|date:"M d" }}',{% endfor %}];
-  const initialSalesData = [{% for d in daily_data %}{{ d.sales|float }},{% endfor %}];
-  const initialProfitsData = [{% for d in daily_data %}{{ d.profit|float }},{% endfor %}];
+  let initialSalesData = [{% for d in daily_data %}{{ d.sales }},{% endfor %}];
+  let initialProfitsData = [{% for d in daily_data %}{{ d.profit }},{% endfor %}];
   const initialTrendSales = {{ trend_sales|safe }};
   const initialTrendProfits = {{ trend_profits|safe }};
   const initialProductNames = [{% for m in most_selling %}'{{ m.product__name }}',{% endfor %}];
-  const initialProductRevenues = [{% for m in most_selling %}{{ m.total_revenue|float }},{% endfor %}];
+  let initialProductRevenues = [{% for m in most_selling %}{{ m.total_revenue }},{% endfor %}];
+
+  // Parse initial data to floats
+  initialSalesData = initialSalesData.map(v => parseFloat(v) || 0);
+  initialProfitsData = initialProfitsData.map(v => parseFloat(v) || 0);
+  initialProductRevenues = initialProductRevenues.map(v => parseFloat(v) || 0);
 
   let salesChart, profitChart, topProductsChart;
 
   function toggleChartVisibility(chartContainerId, canvasId, noDataId, hasData) {
-    const container = document.getElementById(chartContainerId);
     const canvas = document.getElementById(canvasId);
     const noData = document.getElementById(noDataId);
     if (hasData) {
@@ -412,24 +469,314 @@
     }
   }
 
+  function updateSummary(data) {
+    // Total Sales
+    const salesEl = document.querySelector('div.card:nth-child(1) p.text-2xl');
+    salesEl.textContent = `KES ${parseFloat(data.total_sales || 0).toFixed(2)}`;
+
+    // Total Profit
+    const profitEl = document.querySelector('div.card:nth-child(2) p.text-2xl');
+    const profitValue = parseFloat(data.total_profit || 0).toFixed(2);
+    profitEl.textContent = `KES ${profitValue}`;
+    if (data.total_profit < 0) {
+      profitEl.className = 'profit-negative text-2xl font-bold currency-kes';
+    } else {
+      profitEl.className = 'profit-positive text-2xl font-bold currency-kes';
+    }
+
+    // Inventory Turnover
+    const turnoverEl = document.querySelector('div.card:nth-child(3) p.text-2xl');
+    turnoverEl.textContent = parseFloat(data.inventory_turnover || 0).toFixed(2);
+
+    // Period
+    const periodEl = document.querySelector('div.card:nth-child(4) p.text-lg');
+    const startFormatted = data.start_date ? new Date(data.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+    const endFormatted = data.end_date ? new Date(data.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+    periodEl.textContent = `${startFormatted} to ${endFormatted}`;
+  }
+
+  function updateChartsData(data) {
+    const hasData = data.daily_data && data.daily_data.length > 0;
+    const labels = hasData ? data.daily_data.map(d => new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })) : [];
+
+    // Sales Chart
+    toggleChartVisibility('sales-chart-container', 'salesChart', 'sales-no-data', hasData);
+    if (hasData) {
+      const salesValues = data.daily_data.map(d => parseFloat(d.sales || 0));
+      if (!salesChart) {
+        const salesCtx = document.getElementById('salesChart').getContext('2d');
+        salesChart = new Chart(salesCtx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Daily Sales (KES)',
+                data: salesValues,
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.1,
+                fill: true
+              },
+              {
+                label: 'Trend Line',
+                data: data.trend_sales || [],
+                borderColor: 'rgb(59, 130, 246)',
+                borderDash: [5, 5],
+                fill: false,
+                tension: 0.1,
+                pointRadius: 0
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            interaction: { intersect: false, mode: 'index' },
+            scales: { y: { beginAtZero: true } },
+            plugins: {
+              legend: { display: true }
+            }
+          }
+        });
+      } else {
+        salesChart.data.labels = labels;
+        salesChart.data.datasets[0].data = salesValues;
+        salesChart.data.datasets[1].data = data.trend_sales || [];
+        salesChart.update('none');
+      }
+    } else if (salesChart) {
+      salesChart.destroy();
+      salesChart = null;
+    }
+
+    // Profit Chart
+    toggleChartVisibility('profit-chart-container', 'profitChart', 'profit-no-data', hasData);
+    if (hasData) {
+      const profitsValues = data.daily_data.map(d => parseFloat(d.profit || 0));
+      if (!profitChart) {
+        const profitCtx = document.getElementById('profitChart').getContext('2d');
+        profitChart = new Chart(profitCtx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Daily Profit (KES)',
+                data: profitsValues,
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                tension: 0.1,
+                fill: true
+              },
+              {
+                label: 'Trend Line',
+                data: data.trend_profits || [],
+                borderColor: 'rgb(34, 197, 94)',
+                borderDash: [5, 5],
+                fill: false,
+                tension: 0.1,
+                pointRadius: 0
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            interaction: { intersect: false, mode: 'index' },
+            scales: { y: { beginAtZero: false } },
+            plugins: {
+              legend: { display: true }
+            }
+          }
+        });
+      } else {
+        profitChart.data.labels = labels;
+        profitChart.data.datasets[0].data = profitsValues;
+        profitChart.data.datasets[1].data = data.trend_profits || [];
+        profitChart.update('none');
+      }
+    } else if (profitChart) {
+      profitChart.destroy();
+      profitChart = null;
+    }
+
+    // Top Products Chart
+    const hasProducts = data.most_selling && data.most_selling.length > 0;
+    toggleChartVisibility('top-products-chart-container', 'topProductsChart', 'top-products-no-data', hasProducts);
+    if (hasProducts) {
+      const productNames = data.most_selling.map(p => p.product__name || 'Unknown');
+      const productRevenues = data.most_selling.map(p => parseFloat(p.total_revenue || 0));
+      if (!topProductsChart) {
+        const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
+        topProductsChart = new Chart(topProductsCtx, {
+          type: 'pie',
+          data: {
+            labels: productNames,
+            datasets: [{
+              data: productRevenues,
+              backgroundColor: [
+                'rgb(255, 99, 132)', 'rgb(54, 162, 235)', 'rgb(255, 205, 86)', 'rgb(75, 192, 192)',
+                'rgb(153, 102, 255)', 'rgb(255, 159, 64)', 'rgb(199, 199, 199)', 'rgb(83, 102, 255)'
+              ],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            interaction: { intersect: false },
+            plugins: { legend: { position: 'bottom' } },
+            onClick: (e, elements) => {
+              if (elements.length > 0) {
+                const index = elements[0].index;
+                const productName = topProductsChart.data.labels[index];
+                const stockRows = document.querySelectorAll('#stock-table tbody tr');
+                let visibleCount = 0;
+                stockRows.forEach(row => {
+                  if (row.style.display !== 'none') {
+                    const cellText = row.cells[1].textContent.toLowerCase();
+                    if (cellText.includes(productName.toLowerCase())) {
+                      row.style.display = '';
+                      visibleCount++;
+                    } else {
+                      row.style.display = 'none';
+                    }
+                  }
+                });
+                if (visibleCount === 0) {
+                  alert(`No stock data found for "${productName}".`);
+                }
+                displayPage('stock-table');
+              }
+            }
+          }
+        });
+      } else {
+        topProductsChart.data.labels = productNames;
+        topProductsChart.data.datasets[0].data = productRevenues;
+        topProductsChart.update('none');
+      }
+    } else if (topProductsChart) {
+      topProductsChart.destroy();
+      topProductsChart = null;
+    }
+  }
+
+  function updateStockTable(stock_report) {
+    const tbody = document.getElementById('stock-table').tBodies[0];
+    tbody.innerHTML = '';
+    if (!stock_report || stock_report.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="no-data">No stock data available</td></tr>';
+    } else {
+      stock_report.forEach(item => {
+        const tr = document.createElement('tr');
+        const turnoverClass = item.turnover > 2 ? 'turnover-high' : item.turnover < 1 ? 'turnover-low' : 'turnover-medium';
+        tr.innerHTML = `
+          <td class="row-num"></td>
+          <td>${item.product_name || 'Unknown'}</td>
+          <td>${item.opening || 0}</td>
+          <td>${item.sold || 0}</td>
+          <td>${item.closing || 0}</td>
+          <td class="${turnoverClass}">${parseFloat(item.turnover || 0).toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    initTable('stock-table');
+  }
+
+  function updateLowStocksTable(low_stocks) {
+    const tbody = document.getElementById('low-stock-table').tBodies[0];
+    tbody.innerHTML = '';
+    if (!low_stocks || low_stocks.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="no-data">No low stock items</td></tr>';
+    } else {
+      low_stocks.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.dataset.type = 'low_stock';
+        tr.innerHTML = `
+          <td class="row-num"></td>
+          <td>${item.product?.name || 'Unknown'}</td>
+          <td>${item.quantity || 0}</td>
+          <td>${item.branch?.name || 'Unknown'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    initTable('low-stock-table');
+  }
+
+  function updateExpiryTable(near_expiries) {
+    const tbody = document.getElementById('expiry-table').tBodies[0];
+    tbody.innerHTML = '';
+    if (!near_expiries || near_expiries.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="no-data">No expiring items</td></tr>';
+    } else {
+      near_expiries.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.dataset.type = 'expiry';
+        tr.dataset.expiry = item.expiry_date || '';
+        const expiryFormatted = item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+        tr.innerHTML = `
+          <td class="row-num"></td>
+          <td>${item.product?.name || 'Unknown'}</td>
+          <td>${expiryFormatted}</td>
+          <td>${item.branch?.name || 'Unknown'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    initTable('expiry-table');
+  }
+
+  function submitFilters() {
+    const form = document.getElementById('filter-form');
+    const formData = new FormData(form);
+    const params = new URLSearchParams(formData).toString();
+    const url = `${window.location.pathname}?${params}`;
+    window.history.replaceState({}, '', url);
+    fetch(url, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+      updateSummary(data);
+      updateChartsData(data);
+      updateStockTable(data.stock_report);
+      updateLowStocksTable(data.low_stocks);
+      updateExpiryTable(data.near_expiries);
+      applyFilters();
+    })
+    .catch(error => console.error('Error applying filters:', error));
+  }
+
   // Table Management Functions
   function initTable(tableId) {
     const table = document.getElementById(tableId);
     if (!table) return;
 
     const theadRow = table.tHead.rows[0];
-    const newTh = document.createElement('th');
-    newTh.textContent = '#';
-    newTh.className = 'row-num-header';
-    newTh.style.width = '50px';
-    theadRow.insertBefore(newTh, theadRow.firstChild);
+    let numHeader = theadRow.querySelector('.row-num-header');
+    if (!numHeader) {
+      numHeader = document.createElement('th');
+      numHeader.className = 'row-num-header';
+      numHeader.textContent = '#';
+      theadRow.insertBefore(numHeader, theadRow.firstChild);
+    }
 
     const tbody = table.tBodies[0];
     Array.from(tbody.rows).forEach(row => {
-      if (row.querySelector('.no-data')) return; // skip no-data row
-      const newTd = document.createElement('td');
-      newTd.className = 'row-num';
-      row.insertBefore(newTd, row.firstChild);
+      if (row.querySelector('.no-data')) return;
+      let numCell = row.querySelector('.row-num');
+      if (!numCell) {
+        numCell = document.createElement('td');
+        numCell.className = 'row-num';
+        row.insertBefore(numCell, row.firstChild);
+      }
     });
 
     // Update no-data colspan if present
@@ -469,15 +816,19 @@
     window[`${tableId}_colTypes`] = colTypes;
 
     // Init state
-    window[`${tableId}_searchTerm`] = '';
-    window[`${tableId}_rowsPerPage`] = 10;
-    window[`${tableId}_currentPage`] = 1;
+    if (!window[`${tableId}_searchTerm`]) window[`${tableId}_searchTerm`] = '';
+    if (!window[`${tableId}_rowsPerPage`]) window[`${tableId}_rowsPerPage`] = 10;
+    if (!window[`${tableId}_currentPage`]) window[`${tableId}_currentPage`] = 1;
 
     // Add pagination controls
     const content = table.closest('.collapsible-content');
-    const paginationDiv = document.getElementById(`${tableId}-pagination`) || document.createElement('div');
-    paginationDiv.id = `${tableId}-pagination`;
-    paginationDiv.className = 'pagination';
+    let paginationDiv = document.getElementById(`${tableId}-pagination`);
+    if (!paginationDiv) {
+      paginationDiv = document.createElement('div');
+      paginationDiv.id = `${tableId}-pagination`;
+      paginationDiv.className = 'pagination';
+      content.appendChild(paginationDiv);
+    }
     paginationDiv.innerHTML = `
       <div class="flex items-center">
         <label class="mr-2 text-sm">Rows per page:</label>
@@ -493,14 +844,18 @@
         <button id="${tableId}-next-btn" class="px-3 py-1 bg-gray-200 rounded disabled:opacity-50" onclick="nextPage('${tableId}')">Next</button>
       </div>
     `;
-    if (!document.getElementById(`${tableId}-pagination`)) content.appendChild(paginationDiv);
 
     // Event listeners for pagination
-    document.getElementById(`${tableId}-rows-select`).addEventListener('change', (e) => changeRowsPerPage(tableId, e.target.value));
+    const selectEl = document.getElementById(`${tableId}-rows-select`);
+    if (selectEl && !selectEl.dataset.listener) {
+      selectEl.addEventListener('change', (e) => changeRowsPerPage(tableId, e.target.value));
+      selectEl.dataset.listener = 'true';
+    }
 
     // Sort listeners
-    table.querySelectorAll('th[data-sort]').forEach(th => {
+    table.querySelectorAll('th[data-sort]:not([data-listener="sort"])').forEach(th => {
       th.addEventListener('click', () => sortTable(tableId, th.dataset.sort));
+      th.dataset.listener = 'sort';
     });
 
     // Initial display
@@ -662,186 +1017,161 @@
     displayPage(tableId);
   }
 
+  // Real-time update function for charts only
+  function updateCharts() {
+    fetch(window.location.href, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+      updateChartsData(data);
+    })
+    .catch(error => console.error('Error updating charts:', error));
+  }
+
   // Chart initialization
   document.addEventListener('DOMContentLoaded', () => {
     // Init tables
-    ['stock-table', 'low-stock-table', 'expiry-table'].forEach(initTable); // Removed notifications-table
+    ['stock-table', 'low-stock-table', 'expiry-table'].forEach(initTable);
 
     const hasInitialData = initialDates.length > 0;
     toggleChartVisibility('sales-chart-container', 'salesChart', 'sales-no-data', hasInitialData);
     toggleChartVisibility('profit-chart-container', 'profitChart', 'profit-no-data', hasInitialData);
     toggleChartVisibility('top-products-chart-container', 'topProductsChart', 'top-products-no-data', initialProductNames.length > 0);
 
-    if (!hasInitialData) return;
-
-    // Initialize Charts
-    const salesCtx = document.getElementById('salesChart').getContext('2d');
-    salesChart = new Chart(salesCtx, {
-      type: 'line',
-      data: {
-        labels: initialDates,
-        datasets: [
-          {
-            label: 'Daily Sales (KES)',
-            data: initialSalesData,
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            tension: 0.1,
-            fill: true
-          },
-          {
-            label: 'Trend Line',
-            data: initialTrendSales,
-            borderColor: 'rgb(59, 130, 246)',
-            borderDash: [5, 5],
-            fill: false,
-            tension: 0.1,
-            pointRadius: 0
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 0 },
-        interaction: { intersect: false, mode: 'index' },
-        scales: { y: { beginAtZero: true } },
-        plugins: {
-          legend: { display: true }
-        }
-      }
-    });
-
-    const profitCtx = document.getElementById('profitChart').getContext('2d');
-    profitChart = new Chart(profitCtx, {
-      type: 'line',
-      data: {
-        labels: initialDates,
-        datasets: [
-          {
-            label: 'Daily Profit (KES)',
-            data: initialProfitsData,
-            borderColor: 'rgb(34, 197, 94)',
-            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-            tension: 0.1,
-            fill: true
-          },
-          {
-            label: 'Trend Line',
-            data: initialTrendProfits,
-            borderColor: 'rgb(34, 197, 94)',
-            borderDash: [5, 5],
-            fill: false,
-            tension: 0.1,
-            pointRadius: 0
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 0 },
-        interaction: { intersect: false, mode: 'index' },
-        scales: { y: { beginAtZero: false } },
-        plugins: {
-          legend: { display: true }
-        }
-      }
-    });
-
-    const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
-    topProductsChart = new Chart(topProductsCtx, {
-      type: 'pie',
-      data: {
-        labels: initialProductNames,
-        datasets: [{
-          data: initialProductRevenues,
-          backgroundColor: [
-            'rgb(255, 99, 132)', 'rgb(54, 162, 235)', 'rgb(255, 205, 86)', 'rgb(75, 192, 192)',
-            'rgb(153, 102, 255)', 'rgb(255, 159, 64)', 'rgb(199, 199, 199)', 'rgb(83, 102, 255)'
-          ],
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 0 },
-        interaction: { intersect: false },
-        plugins: { legend: { position: 'bottom' } },
-        onClick: (e, elements) => {
-          if (elements.length > 0) {
-            const index = elements[0].index;
-            const productName = topProductsChart.data.labels[index];
-            const stockRows = document.querySelectorAll('#stock-table tbody tr');
-            let visibleCount = 0;
-            stockRows.forEach(row => {
-              if (row.style.display !== 'none') {
-                const cellText = row.cells[1].textContent.toLowerCase();
-                if (cellText.includes(productName.toLowerCase())) {
-                  row.style.display = '';
-                  visibleCount++;
-                } else {
-                  row.style.display = 'none';
-                }
-              }
-            });
-            if (visibleCount === 0) {
-              alert(`No stock data found for "${productName}".`);
+    if (hasInitialData) {
+      // Initialize Charts
+      const salesCtx = document.getElementById('salesChart').getContext('2d');
+      salesChart = new Chart(salesCtx, {
+        type: 'line',
+        data: {
+          labels: initialDates,
+          datasets: [
+            {
+              label: 'Daily Sales (KES)',
+              data: initialSalesData,
+              borderColor: 'rgb(59, 130, 246)',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              tension: 0.1,
+              fill: true
+            },
+            {
+              label: 'Trend Line',
+              data: initialTrendSales,
+              borderColor: 'rgb(59, 130, 246)',
+              borderDash: [5, 5],
+              fill: false,
+              tension: 0.1,
+              pointRadius: 0
             }
-            displayPage('stock-table');
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 0 },
+          interaction: { intersect: false, mode: 'index' },
+          scales: { y: { beginAtZero: true } },
+          plugins: {
+            legend: { display: true }
           }
         }
-      }
-    });
+      });
 
-    // Real-time update function
-    function updateCharts() {
-      fetch(window.location.href, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      })
-      .then(response => response.json())
-      .then(data => {
-        const newDates = data.daily_data.map(d => d.date);
-        const hasNewData = newDates.length > 0;
-
-        toggleChartVisibility('sales-chart-container', 'salesChart', 'sales-no-data', hasNewData);
-        if (hasNewData && salesChart) {
-          salesChart.data.labels = newDates;
-          salesChart.data.datasets[0].data = data.daily_data.map(d => parseFloat(d.sales));
-          salesChart.data.datasets[1].data = data.trend_sales;
-          salesChart.update('none');
+      const profitCtx = document.getElementById('profitChart').getContext('2d');
+      profitChart = new Chart(profitCtx, {
+        type: 'line',
+        data: {
+          labels: initialDates,
+          datasets: [
+            {
+              label: 'Daily Profit (KES)',
+              data: initialProfitsData,
+              borderColor: 'rgb(34, 197, 94)',
+              backgroundColor: 'rgba(34, 197, 94, 0.1)',
+              tension: 0.1,
+              fill: true
+            },
+            {
+              label: 'Trend Line',
+              data: initialTrendProfits,
+              borderColor: 'rgb(34, 197, 94)',
+              borderDash: [5, 5],
+              fill: false,
+              tension: 0.1,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 0 },
+          interaction: { intersect: false, mode: 'index' },
+          scales: { y: { beginAtZero: false } },
+          plugins: {
+            legend: { display: true }
+          }
         }
+      });
 
-        toggleChartVisibility('profit-chart-container', 'profitChart', 'profit-no-data', hasNewData);
-        if (hasNewData && profitChart) {
-          profitChart.data.labels = newDates;
-          profitChart.data.datasets[0].data = data.daily_data.map(d => parseFloat(d.profit));
-          profitChart.data.datasets[1].data = data.trend_profits;
-          profitChart.update('none');
+      const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
+      topProductsChart = new Chart(topProductsCtx, {
+        type: 'pie',
+        data: {
+          labels: initialProductNames,
+          datasets: [{
+            data: initialProductRevenues,
+            backgroundColor: [
+              'rgb(255, 99, 132)', 'rgb(54, 162, 235)', 'rgb(255, 205, 86)', 'rgb(75, 192, 192)',
+              'rgb(153, 102, 255)', 'rgb(255, 159, 64)', 'rgb(199, 199, 199)', 'rgb(83, 102, 255)'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 0 },
+          interaction: { intersect: false },
+          plugins: { legend: { position: 'bottom' } },
+          onClick: (e, elements) => {
+            if (elements.length > 0) {
+              const index = elements[0].index;
+              const productName = topProductsChart.data.labels[index];
+              const stockRows = document.querySelectorAll('#stock-table tbody tr');
+              let visibleCount = 0;
+              stockRows.forEach(row => {
+                if (row.style.display !== 'none') {
+                  const cellText = row.cells[1].textContent.toLowerCase();
+                  if (cellText.includes(productName.toLowerCase())) {
+                    row.style.display = '';
+                    visibleCount++;
+                  } else {
+                    row.style.display = 'none';
+                  }
+                }
+              });
+              if (visibleCount === 0) {
+                alert(`No stock data found for "${productName}".`);
+              }
+              displayPage('stock-table');
+            }
+          }
         }
-
-        const hasProductsData = data.most_selling.length > 0;
-        toggleChartVisibility('top-products-chart-container', 'topProductsChart', 'top-products-no-data', hasProductsData);
-        if (hasProductsData && topProductsChart) {
-          topProductsChart.data.labels = data.most_selling.map(p => p.name);
-          topProductsChart.data.datasets[0].data = data.most_selling.map(p => parseFloat(p.revenue));
-          topProductsChart.update('none');
-        }
-      })
-      .catch(error => console.error('Error updating charts:', error));
+      });
     }
 
     setInterval(updateCharts, 30000);
 
-    // Other event listeners
+    // Real-time search event listeners (immediate on input)
     document.getElementById('stock-search')?.addEventListener('input', e => filterTable('stock-table', e.target.value));
     document.getElementById('low-stock-search')?.addEventListener('input', e => filterTable('low-stock-table', e.target.value));
     document.getElementById('expiry-search')?.addEventListener('input', e => filterTable('expiry-table', e.target.value));
 
-    document.getElementById('alert-type').addEventListener('change', applyFilters);
-    document.getElementById('branch').addEventListener('change', () => document.getElementById('filter-form').submit());
-    document.getElementById('date-range').addEventListener('change', function() {
+    document.getElementById('alert-type')?.addEventListener('change', submitFilters);
+    document.getElementById('branch')?.addEventListener('change', submitFilters);
+    document.getElementById('date-range')?.addEventListener('change', function() {
       const customDate = document.getElementById('custom-date');
       const customDateEnd = document.getElementById('custom-date-end');
       if (this.value === 'custom') {
@@ -851,7 +1181,10 @@
         customDate.classList.add('hidden');
         customDateEnd.classList.add('hidden');
       }
+      submitFilters();
     });
+    document.getElementById('start-date')?.addEventListener('change', submitFilters);
+    document.getElementById('end-date')?.addEventListener('change', submitFilters);
 
     // Collapsible
     document.querySelectorAll('.collapsible-header').forEach(header => {
@@ -865,13 +1198,13 @@
       });
     });
 
-    window.addEventListener('load', applyFilters);
+    applyFilters();
   });
 
   function applyFilters() {
-    const alertType = document.getElementById('alert-type').value;
-    document.getElementById('low-stock-container').style.display = alertType === '' || alertType === 'low_stock' ? '' : 'none';
-    document.getElementById('expiry-container').style.display = alertType === '' || alertType === 'expiry' ? '' : 'none';
+    const alertType = document.getElementById('alert-type')?.value || '';
+    document.getElementById('low-stock-container').style.display = (alertType === '' || alertType === 'low_stock') ? '' : 'none';
+    document.getElementById('expiry-container').style.display = (alertType === '' || alertType === 'expiry') ? '' : 'none';
   }
 
   function resetFilters() {
@@ -882,7 +1215,7 @@
     document.getElementById('alert-type').value = '';
     document.getElementById('custom-date').classList.add('hidden');
     document.getElementById('custom-date-end').classList.add('hidden');
-    document.getElementById('filter-form').submit();
+    submitFilters();
   }
 </script>
 {% endblock %}
