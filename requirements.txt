@@ -5,6 +5,7 @@ cssselect2==0.8.0
 Django==5.2.6
 django-widget-tweaks==1.5.0
 fonttools==4.60.1
+numpy==2.3.3
 pillow==11.3.0
 pycparser==2.23
 pydyf==0.11.0

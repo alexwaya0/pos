@@ -10,6 +10,7 @@ from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 from .models import Branch, Product, ProductStock, Customer, Sale, SaleItem
 from .forms import ProductForm, ProductStockForm, SaleCreateForm
 from datetime import timedelta, datetime
+import numpy as np
 
 def in_group(user, group_name):
     return user.groups.filter(name=group_name).exists() or user.is_superuser
@@ -245,6 +246,17 @@ def reports(request):
         profit=Sum(ExpressionWrapper(F('line_total') - F('qty') * F('product_stock__unit_cost'), output_field=DecimalField()))
     )['profit'] or Decimal('0.00')
 
+    total_cogs = total_sales - total_profit
+
+    total_inventory_cost = ProductStock.objects.filter(branch__in=selected_branches).aggregate(
+        cost=Sum(ExpressionWrapper(F('quantity') * F('unit_cost'), output_field=DecimalField()))
+    )['cost'] or Decimal('0.00')
+
+    beginning_cost = total_inventory_cost + total_cogs
+    avg_inventory_cost = (beginning_cost + total_inventory_cost) / 2 if beginning_cost + total_inventory_cost > 0 else Decimal('0.00')
+    inventory_turnover = total_cogs / avg_inventory_cost if avg_inventory_cost > 0 else 0
+    inventory_turnover = round(float(inventory_turnover), 2)
+
     most_selling = sale_items_qs.values('product__name').annotate(total_qty=Sum('qty'), total_revenue=Sum('line_total')).order_by('-total_qty')[:5]
 
     sold_per_product = sale_items_qs.values('product__id', 'product__name').annotate(sold=Sum('qty')).order_by('product__name')
@@ -253,11 +265,22 @@ def reports(request):
         product_id = item['product__id']
         closing = ProductStock.objects.filter(product_id=product_id, branch__in=selected_branches).aggregate(total=Sum('quantity'))['total'] or 0
         opening = closing + item['sold']
+        sold_qs = sale_items_qs.filter(product_id=product_id)
+        cogs = sold_qs.aggregate(
+            cogs=Sum(ExpressionWrapper(F('qty') * F('product_stock__unit_cost'), output_field=DecimalField()))
+        )['cogs'] or Decimal('0.00')
+        closing_cost = ProductStock.objects.filter(product_id=product_id, branch__in=selected_branches).aggregate(
+            cost=Sum(ExpressionWrapper(F('quantity') * F('unit_cost'), output_field=DecimalField()))
+        )['cost'] or Decimal('0.00')
+        opening_cost = closing_cost + cogs
+        avg_cost = (opening_cost + closing_cost) / 2 if opening_cost + closing_cost > 0 else Decimal('0.00')
+        turnover = float(cogs) / float(avg_cost) if avg_cost > 0 else 0
         stock_report.append({
             'product_name': item['product__name'],
             'opening': opening,
             'sold': item['sold'],
-            'closing': closing
+            'closing': closing,
+            'turnover': round(turnover, 2)
         })
 
     low_stocks = ProductStock.objects.filter(quantity__lte=low_stock_threshold, branch__in=selected_branches)
@@ -285,6 +308,34 @@ def reports(request):
                 'created': today
             })
 
+    daily_data = []
+    current_date = start_date
+    while current_date <= end_date:
+        sales_qs = Sale.objects.filter(branch__in=selected_branches, created_at__date=current_date)
+        total_sales_day = sales_qs.aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
+        items_qs = SaleItem.objects.filter(sale__in=sales_qs)
+        total_profit_day = items_qs.aggregate(
+            profit=Sum(ExpressionWrapper(F('line_total') - F('qty') * F('product_stock__unit_cost'), output_field=DecimalField()))
+        )['profit'] or Decimal('0.00')
+        daily_data.append({'date': current_date, 'sales': total_sales_day, 'profit': total_profit_day})
+        current_date += timedelta(days=1)
+
+    sales_array = np.array([float(day['sales']) for day in daily_data])
+    if len(sales_array) > 1:
+        days = np.arange(len(sales_array))
+        coef = np.polyfit(days, sales_array, 1)
+        trend_sales = [coef[0] * x + coef[1] for x in days]
+    else:
+        trend_sales = sales_array.tolist()
+
+    profits_array = np.array([float(day['profit']) for day in daily_data])
+    if len(profits_array) > 1:
+        days = np.arange(len(profits_array))
+        coef = np.polyfit(days, profits_array, 1)
+        trend_profits = [coef[0] * x + coef[1] for x in days]
+    else:
+        trend_profits = profits_array.tolist()
+
     context = {
         'data': data,
         'branches': branches,
@@ -294,8 +345,12 @@ def reports(request):
         'role': 'admin' if request.user.is_superuser else 'manager' if is_manager(request.user) else 'cashier',
         'total_sales': total_sales,
         'total_profit': total_profit,
+        'inventory_turnover': inventory_turnover,
         'most_selling': most_selling,
         'stock_report': stock_report,
+        'daily_data': daily_data,
+        'trend_sales': [round(val, 2) for val in trend_sales],
+        'trend_profits': [round(val, 2) for val in trend_profits],
         'start_date': start_date.strftime('%Y-%m-%d'),
         'end_date': end_date.strftime('%Y-%m-%d'),
     }
