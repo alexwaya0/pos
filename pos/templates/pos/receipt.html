@@ -5,18 +5,20 @@
 <div class="bg-white p-6 rounded shadow max-w-2xl mx-auto receipt-content">
   <div class="flex justify-between items-start mb-2">
     <div>
-      <h2 class="text-xl font-bold">{{ sale.branch.name }}</h2>
+      <h2 class="text-xl font-bold mb-0">{{ sale.branch.name }}</h2>
+      <p class="text-sm">Mobile: {{ sale.branch.phone }}</p>
     </div>
     <div class="text-right">
-      <div class="font-semibold">Receipt #<span id="receipt-number"></span></div>
+      <div class="font-semibold">Receipt#: <span id="receipt-number"></span></div>
+      <div>Paid: Cash</div>
     </div>
   </div>
   <div class="flex justify-between mb-4">
     <div>
-      <p class="text-sm">Phone: {{ sale.branch.phone }}</p>
       <p class="text-sm">{{ sale.branch.address }}</p>
     </div>
     <div class="text-right">
+      <div class="text-sm">Served by: {{ user.first_name }}</div>
       <div class="text-sm">{{ sale.created_at }}</div>
     </div>
   </div>
@@ -26,12 +28,13 @@
   <table class="w-full text-sm">
     <thead>
       <tr class="text-left text-gray-600">
-        <th>Item</th><th>Qty</th><th>Unit</th><th class="text-right">Line</th>
+        <th>#</th><th>Item</th><th>Qty</th><th>Unit Price (KES)</th><th class="text-right">Sub Total (KES)</th>
       </tr>
     </thead>
     <tbody>
       {% for it in sale.items.all %}
         <tr>
+          <td>{{ forloop.counter }}</td>
           <td>{{ it.product.name }}</td>
           <td>{{ it.qty }}</td>
           <td>KES {{ it.unit_price }}</td>
@@ -41,12 +44,24 @@
     </tbody>
   </table>
 
-  <div class="mt-4 text-right font-semibold">
+  <div class="my-2"></div>
+  <div class="my-2"></div>
+  <div class="my-2"></div>
+
+  <div class="text-right font-semibold">
     Total: KES {{ sale.total }}
   </div>
 
+  <div class="mt-6 text-center">
+    <p class="text-sm font-semibold">Thank you for choosing us. We wish you a quick recovery!</p>
+  </div>
+
   <div class="mt-6 flex justify-end space-x-3 print-buttons">
-    <button onclick="window.print()" class="px-3 py-2 rounded bg-green-800 text-white">Print / Save PDF</button>
+    <select id="printer-select" class="px-3 py-2 rounded border">
+      <option value="default">Default Printer (POS Thermal)</option>
+      <option value="standard">Standard Printer</option>
+    </select>
+    <button onclick="printReceipt()" class="px-3 py-2 rounded bg-green-800 text-white">Print / Save PDF</button>
     <a href="{% url 'pos:dashboard' %}" class="px-3 py-2 rounded bg-gray-200">Close</a>
   </div>
 </div>
@@ -69,8 +84,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Incrementing number: pad sale.id to 3 digits (note: this uses global sale.id; for daily reset, backend should provide a daily sequence number)
   const incrementNum = String(saleId).padStart(3, '0');
 
-  // Construct the receipt number
-  const receiptNum = `${storeInitials}/${month}/${day}/${yearLast2}/${incrementNum}`;
+  // Construct the receipt number without slashes
+  const receiptNum = `${storeInitials}${month}${day}${yearLast2}${incrementNum}`;
 
   // Set the receipt number in the content
   document.getElementById('receipt-number').textContent = receiptNum;
@@ -79,9 +94,26 @@ document.addEventListener('DOMContentLoaded', function() {
   const titleSpans = document.querySelectorAll('#receipt-title');
   titleSpans.forEach(span => span.textContent = receiptNum);
 });
+
+function printReceipt() {
+  const printerSelect = document.getElementById('printer-select');
+  const selectedPrinter = printerSelect.value;
+  // Note: Browser security prevents direct printer selection.
+  // The print dialog will allow user to choose the printer.
+  // For POS thermal, ensure it's set as default.
+  if (selectedPrinter === 'default') {
+    // Assume default is POS Thermal
+    window.print();
+  } else {
+    window.print();
+  }
+}
 </script>
 
 <style>
+  .receipt-content {
+    font-family: 'Courier New', Courier, monospace;
+  }
   @media print {
     @page {
       margin: 0.5cm;
@@ -100,11 +132,13 @@ document.addEventListener('DOMContentLoaded', function() {
       border-radius: 0 !important;
       position: static !important;
       display: block !important;
+      font-family: 'Courier New', Courier, monospace !important;
     }
     body {
       margin: 0 !important;
       padding: 0 !important;
       font-size: 12pt !important;
+      font-family: 'Courier New', Courier, monospace !important;
     }
     /* Compact styles for thermal printing */
     .receipt-content table {
