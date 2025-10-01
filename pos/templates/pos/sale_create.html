@@ -1,245 +1,308 @@
 {% extends "pos/base.html" %}
 {% load static %}
-{% block title %}Add Item(s){% endblock %}
-{% block page_title %}Add Item(s{% endblock %}
+{% block title %}New Sale{% endblock %}
+{% block page_title %}New Sale{% endblock %}
 
 {% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-  /* Color Reference: Teal: #006666, Jungle Green: #1F7A5F, Gold: #D4A017, Red: #FF4500 */
-  
+  /* Enhanced Color Palette: Teal (#0f766e), Gold (#D4AF37), Dark Teal (#064420) */
+  :root {
+    --teal: #0f766e;
+    --dark-teal: #064420;
+    --gold: #D4AF37;
+    --gold-dark: #b8962c;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --focus-ring: 0 0 0 3px rgb(212 175 55 / 0.5);
+  }
+
   body {
-    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #f8f9fa; 
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
   }
-  /* Card/Jumbotron Style */
-  .card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: none;
-    border-radius: 16px; 
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); 
-    position: relative;
-    padding: 32px; 
-    background: #ffffff;
-    height: 100%; 
-  }
-  .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 40px rgba(0, 102, 102, 0.25);
-  }
-  .form-group {
-    margin-bottom: 24px;
-  }
-  /* Advanced Input Styling (Used for main form fields) */
-  .form-input-control {
-    border: 1px solid #006666; /* TEAL border */
-    border-radius: 8px;
-    padding: 12px 16px;
-    width: 100%;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    font-size: 1rem;
-    line-height: 1.5; 
-  }
-  .form-input-control:focus {
-    border-color: #D4A017; /* Gold focus color */
-    outline: none;
-    box-shadow: 0 0 5px rgba(212, 160, 23, 0.5);
-  }
-  
-  /* --- MODERN TABLE STYLING --- */
-  .table-card-container {
-    background: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    overflow: hidden; 
-    margin-bottom: 24px;
-  }
-  .dashboard-table {
-    width: 100%;
-    /* Use border-collapse: collapse to draw continuous borders */
-    border-collapse: collapse; 
-    border-spacing: 0;
-    border: 1px solid #d1d5db; /* Light gray border around the whole table */
-  }
-  .dashboard-table th {
-    background-color: #006666; 
-    color: #ffffff;
-    padding: 14px 12px;
-    font-weight: 600;
-    text-align: left;
-    border: 1px solid #005555; /* Darker border for header separation */
-  }
-  /* Table Row Striping and Hover */
-  .dashboard-table tbody tr:nth-child(odd) {
-    background-color: #F9FAFB; /* Light Gray for odd rows */
-  }
-  .dashboard-table tbody tr:nth-child(even) {
-    background-color: #ffffff; /* White for even rows */
-  }
-  .dashboard-table tbody tr:hover {
-    background-color: #E6F0FA;
-  }
-  .dashboard-table td {
-    padding: 12px;
-    text-align: left;
-    /* Apply borders to all sides of the cell */
-    border: 1px solid #e2e8f0; 
-    vertical-align: middle;
-  }
-  /* Remove the bottom border logic as we now use border: 1px solid */
-  /* .dashboard-table tbody tr:last-child td { border-bottom: none; } */
 
-  /* Custom Styles for Text/Numbers */
-  .item-product-name-cell {
-    color: #006666;
-    font-weight: 500;
-    max-width: 300px; 
+  /* Advanced Card Styling */
+  .sleek-card {
+    background: linear-gradient(145deg, #ffffff, #f8fafc);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 20px;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .item-line-total-cell {
-    color: #006666;
-    font-weight: 600;
-    text-align: right !important;
+    position: relative;
   }
 
-  /* MODERN TABLE INPUT STYLING */
-  .table-input {
-    background-color: #ffffff;
-    border: 1px solid #c9d6de; 
-    border-radius: 6px; 
-    padding: 8px 10px; 
-    font-size: 0.95rem; 
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    text-align: right;
+  .sleek-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
-  .table-input:focus {
-    border-color: #D4A017; 
-    outline: none;
-    box-shadow: 0 0 4px rgba(212, 160, 23, 0.4);
-  }
-  /* Enforce field sizing */
-  .price-input {
-      width: 120px; 
-  }
-  .qty-input {
-      width: 80px; 
-  }
-  
-  /* Remove button */
-  .remove-btn {
-    color: #FF4500;
-    transition: color 0.2s ease, transform 0.2s ease;
-  }
-  .remove-btn:hover {
-    color: #CC3700;
-    transform: scale(1.1);
-  }
-  
-  /* Row Placeholder Styling */
-  .row-placeholder-cell {
-      font-style: italic;
-      color: #9ca3af; /* Tailwind gray-400 */
-      padding: 16px 12px; /* Maintain padding consistency */
-      text-align: center;
-      border: 1px solid #e2e8f0; /* Ensure placeholder cell has a border */
-  }
-  .placeholder-product { text-align: left !important; font-weight: 500; }
-  .placeholder-price, .placeholder-total { text-align: right !important; }
 
-  /* Ensure the row placeholder respects alternating colors (it is the first row, so it should be odd) */
-  #empty-row-placeholder {
-      background-color: #F9FAFB !important;
+  .sleek-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sleek-card:hover::before {
+    opacity: 1;
+  }
+
+  /* Sleek Form Field Styling (Enforced via forms.py widgets) */
+  .sleek-input, .sleek-select, .sleek-textarea {
+    @apply w-full px-4 py-3 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .sleek-input:focus, .sleek-select:focus, .sleek-textarea:focus {
+    @apply border-teal-500 ring-teal-500/20;
+    box-shadow: var(--focus-ring), var(--shadow-md);
+  }
+
+  .sleek-input::placeholder {
+    @apply text-gray-400;
+  }
+
+  /* Table Container (Guided by Snippet) */
+  .table-container {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden;
+  }
+
+  .table-container h3 {
+    @apply mb-4 text-teal text-lg font-semibold px-6 pt-6;
+  }
+
+  /* Table Outline Styling (Simple Bordered Outline) */
+  .enhanced-table {
+    @apply w-full text-left border-collapse;
+    border: 1px solid #e5e7eb;
+  }
+
+  .enhanced-table thead th {
+    @apply px-6 py-4 text-left text-xs font-bold uppercase tracking-wider bg-teal text-white border border-gray-300;
+  }
+
+  /* Distinct Column Widths and Styles */
+  .enhanced-table th:nth-child(1) { /* Product Name */
+    min-width: 250px;
+    max-width: 300px;
+  }
+
+  .enhanced-table th:nth-child(2), .enhanced-table th:nth-child(4) { /* Price and Total - Right Aligned */
+    @apply text-right;
+  }
+
+  .enhanced-table th:nth-child(3) { /* Quantity - Right Aligned */
+    min-width: 100px;
+    @apply text-right;
+  }
+
+  .enhanced-table th:nth-child(5) { /* Actions - Center */
+    min-width: 100px;
+    @apply text-center;
+  }
+
+  .enhanced-table tbody tr {
+    @apply transition-all duration-200;
+  }
+
+  .enhanced-table tbody td {
+    @apply px-6 py-4 text-sm font-medium text-gray-900 align-middle border border-gray-300;
+  }
+
+  .enhanced-table tbody td:nth-child(1) { /* Product Name */
+    @apply font-semibold text-teal-700;
+  }
+
+  .enhanced-table tbody td:nth-child(2), .enhanced-table td:nth-child(3), .enhanced-table td:nth-child(4) {
+    @apply text-right font-mono;
+  }
+
+  .enhanced-table tbody td:nth-child(4) { /* Line Total */
+    @apply text-teal-600 font-bold;
+  }
+
+  .enhanced-table tbody td:nth-child(5) { /* Actions */
+    @apply text-center;
+  }
+
+  /* Enhanced Focus/Hover for Inline-Styled Inputs */
+  .table-sleek-input:focus {
+    border-color: #0f766e !important;
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1) !important;
+  }
+
+  .table-sleek-input:hover {
+    border-color: #0891b2 !important;
+  }
+
+  /* Remove Button (Styled like Snippet's Sell Button) */
+  .remove-item-btn {
+    @apply inline-block px-4 py-2 text-sm font-medium text-teal bg-teal-50 rounded border border-teal-200 hover:bg-teal-100 hover:text-teal-700 transition-all duration-200;
+  }
+
+  /* Search Panel Enhancements */
+  .search-panel {
+    @apply bg-gradient-to-b from-teal-50 to-white border border-teal-100 rounded-xl p-6 shadow-lg;
+  }
+
+  .search-input {
+    @apply sleek-input mb-4;
+  }
+
+  .search-result-item {
+    @apply flex justify-between items-center p-3 bg-white border border-gray-200 rounded-lg hover:bg-teal-50 hover:border-teal-200 cursor-pointer transition-all duration-200;
+  }
+
+  .search-result-item:hover {
+    transform: translateX(4px);
+  }
+
+  /* Total Display in Footer */
+  .table-footer {
+    @apply bg-teal-50 border-t border-teal-200;
+  }
+
+  .table-footer td {
+    @apply py-4 px-6 font-bold border border-gray-300;
+  }
+
+  /* Empty State Matching Snippet */
+  .empty-state {
+    @apply text-center text-gray-500 py-8 border border-gray-300;
+  }
+
+  .empty-state td {
+    border: 1px solid #e5e7eb;
+  }
+
+  /* Button Enhancements */
+  .sleek-btn {
+    @apply inline-flex items-center justify-center px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2;
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-teal-600 to-teal-700 text-white hover:from-teal-700 hover:to-teal-800 focus:ring-teal-500;
+  }
+
+  /* Notes Textarea */
+  .notes-textarea {
+    @apply sleek-textarea resize-none;
+  }
+
+  /* Grid Responsiveness */
+  @media (max-width: 768px) {
+    .enhanced-table {
+      font-size: 0.875rem;
+    }
+    .enhanced-table th, .enhanced-table td {
+      @apply px-3 py-3;
+    }
+    .table-container {
+      overflow-x: auto;
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-6">
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-8"> 
-    
-    <div class="col-span-2">
-      <div class="card sticky top-4" role="region" aria-label="Sale form">
-        <form id="sale-form" method="post" aria-label="Create new sale">
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <!-- Main Form Column -->
+    <div class="lg:col-span-3">
+      <div class="sleek-card p-8 mb-8" role="region" aria-label="Sale creation form">
+        <form id="sale-form" method="post" novalidate>
           {% csrf_token %}
           
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="form-group mb-0">
-              <h4 class="mb-2 text-base font-medium" style="color: #D4A017;">Branch</h4>
-              <select name="{{ form.branch.name }}" id="{{ form.branch.id_for_label }}" class="form-input-control" aria-label="Select Branch">
-                  {% for value, label in form.branch.field.choices %}
-                      <option value="{{ value }}"{% if value|stringformat:"s" == form.branch.value|stringformat:"s" %} selected{% endif %}>{{ label }}</option>
-                  {% endfor %}
-              </select>
+          <!-- Customer & Branch Details -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="md:col-span-1">
+              <label for="{{ form.branch.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">Branch</label>
+              {{ form.branch }}
             </div>
-            <div class="form-group mb-0">
-              <label for="{{ form.customer_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Customer Phone</label>
-              <input type="text" name="{{ form.customer_phone.name }}" id="{{ form.customer_phone.id_for_label }}" class="form-input-control" value="{{ form.customer_phone.value|default_if_none:'' }}" placeholder="e.g., 0722123456" aria-label="Customer Phone">
+            <div class="md:col-span-1">
+              <label for="{{ form.customer_phone.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
+              {{ form.customer_phone }}
             </div>
-            <div class="form-group mb-0">
-              <label for="{{ form.customer_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
-              <input type="text" name="{{ form.customer_name.name }}" id="{{ form.customer_name.id_for_label }}" class="form-input-control" value="{{ form.customer_name.value|default_if_none:'' }}" placeholder="Customer Name" aria-label="Customer Name">
+            <div class="md:col-span-1">
+              <label for="{{ form.customer_name.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">Name (Optional)</label>
+              {{ form.customer_name }}
             </div>
           </div>
 
-
-          <h3 class="mt-6 mb-4" style="color: #006666; font-size: 1.25rem; font-weight: 600;">Items</h3>
-          
-          <div class="table-card-container">
-            <table class="dashboard-table" role="grid" aria-label="Sale items">
-              <thead>
-                <tr>
-                  <th scope="col">Product Name</th>
-                  <th scope="col" style="text-align: right;">Unit Price</th>
-                  <th scope="col" style="text-align: right;">Quantity</th>
-                  <th scope="col" style="text-align: right;">Line Total</th>
-                  <th scope="col" style="text-align: center;">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="items">
-                  <tr id="empty-row-placeholder">
-                      <td class="row-placeholder-cell placeholder-product">
-                          Start adding products...
-                      </td>
-                      <td class="row-placeholder-cell placeholder-price">KES 0.00</td>
-                      <td class="row-placeholder-cell">0</td>
-                      <td class="row-placeholder-cell placeholder-total">KES 0.00</td>
-                      <td class="row-placeholder-cell" style="text-align: center;">-</td>
+          <!-- Items Section (Guided by Snippet with Outline) -->
+          <div class="mb-8">
+            <div class="table-container">
+              <h3 class="mb-4 text-teal">Sale Items</h3>
+              <table class="enhanced-table" role="grid" aria-label="Items table">
+                <thead>
+                  <tr>
+                    <th scope="col">Product</th>
+                    <th scope="col">Unit Price (KES)</th>
+                    <th scope="col">Qty</th>
+                    <th scope="col">Line Total (KES)</th>
+                    <th scope="col">Action</th>
                   </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="form-group">
-            <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea name="{{ form.notes.name }}" id="{{ form.notes.id_for_label }}" class="form-input-control" rows="3" placeholder="Any specific notes for this sale..." aria-label="Notes">{{ form.notes.value|default_if_none:'' }}</textarea>
-          </div>
-
-          <div class="mt-6 flex items-center justify-between border-t pt-4">
-            <div class="text-xl font-bold" style="color: #006666;">Total: <span id="total">KES 0.00</span></div>
-            <div class="flex space-x-4">
-              <button type="button" class="px-5 py-2 rounded-lg font-medium transition duration-300 ease-in-out" style="background-color: #D4A017; color: #1a202c;"
-                onmouseover="this.style.backgroundColor='#C19213'; this.style.boxShadow='0 4px 10px rgba(212, 160, 23, 0.4)'; this.style.transform='translateY(-1px)'"
-                onmouseout="this.style.backgroundColor='#D4A017'; this.style.boxShadow='none'; this.style.transform='none';"
-                id="add-customer-email" aria-label="Add email for receipt">Email Receipt (if email)</button>
-
-              <button type="submit" class="px-5 py-2 rounded-lg font-medium transition duration-300 ease-in-out" style="background-color: #006666; color: #ffffff;"
-                onmouseover="this.style.backgroundColor='#1F7A5F'; this.style.boxShadow='0 4px 10px rgba(31, 122, 95, 0.4)'; this.style.transform='translateY(-1px)'"
-                onmouseout="this.style.backgroundColor='#006666'; this.style.boxShadow='none'; this.style.transform='none';"
-                aria-label="Submit sale">Record Sale</button>
+                </thead>
+                <tbody id="items">
+                  <tr class="empty-state" id="empty-row-placeholder">
+                    <td colspan="5">Click search to add your first item...</td>
+                  </tr>
+                </tbody>
+                <tfoot class="table-footer">
+                  <tr>
+                    <td colspan="3" class="text-right">Grand Total:</td>
+                    <td id="total" class="text-teal-600 font-bold text-lg" colspan="2">KES 0.00</td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="mb-8">
+            <label for="{{ form.notes.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">Notes (Optional)</label>
+            {{ form.notes }}
+          </div>
+
+          <!-- Actions (Email Button Removed) -->
+          <div class="flex flex-col sm:flex-row gap-4 justify-end items-center pt-6 border-t border-gray-200">
+            <button type="submit" class="sleek-btn btn-primary flex-1 sm:flex-none">
+              <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
+              Record Sale
+            </button>
           </div>
         </form>
       </div>
     </div>
 
-    <div class="h-full">
-      <div class="card h-full" role="region" aria-label="Quick actions">
-        <h4 class="mb-6" style="color: #006666; font-size: 1.25rem; font-weight: 600;">Quick Actions</h4>
-        <div class="search-container">
-          <input type="text" id="product-search" class="form-input-control" placeholder="Search products..." autocomplete="off" aria-label="Search products">
-          <div class="search-results" id="search-results" role="listbox"></div>
+    <!-- Quick Actions Sidebar -->
+    <div class="lg:col-span-1">
+      <div class="search-panel sticky top-8 h-fit" role="region" aria-label="Quick product search">
+        <h4 class="text-lg font-bold text-teal-700 mb-6 flex items-center gap-2">
+          <i data-lucide="search" class="w-5 h-5"></i>
+          Quick Add
+        </h4>
+        <div class="space-y-4">
+          <div>
+            <input type="text" id="product-search" class="search-input" placeholder="Search products..." autocomplete="off" aria-label="Search for products to add">
+            <div id="search-results" class="mt-2 space-y-1 max-h-60 overflow-y-auto" role="listbox" style="display: none;"></div>
+          </div>
+          <div class="text-center py-4 text-sm text-gray-500">
+            {% if preselected_product %}
+              <p>Preselected: {{ preselected_product.name }}</p>
+            {% else %}
+              <p>Scan or type to add items</p>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
@@ -247,6 +310,10 @@
 </div>
 
 <script>
+  // Lucide Icons
+  lucide.createIcons();
+
+  // Existing JS functionality retained
   const products = [
     {% for p in products %}
       { id: {{ p.id }}, name: "{{ p.name|escapejs }}", price: {{ p.price }}, min_price: {{ p.min_price }} }{% if not forloop.last %},{% endif %}
@@ -257,38 +324,32 @@
   const itemsContainer = document.getElementById('items');
   const totalEl = document.getElementById('total');
   const emptyRowPlaceholderHtml = `
-      <tr id="empty-row-placeholder">
-          <td class="row-placeholder-cell placeholder-product">Start adding products...</td>
-          <td class="row-placeholder-cell placeholder-price">KES 0.00</td>
-          <td class="row-placeholder-cell">0</td>
-          <td class="row-placeholder-cell placeholder-total">KES 0.00</td>
-          <td class="row-placeholder-cell" style="text-align: center;">-</td>
-      </tr>
+    <tr class="empty-state" id="empty-row-placeholder">
+      <td colspan="5">Click search to add your first item...</td>
+    </tr>
   `;
   let total = 0.0;
 
   function updatePlaceholder() {
-      const currentPlaceholder = document.getElementById('empty-row-placeholder');
-      if (itemsContainer.querySelectorAll('.sale-item').length === 0) {
-          // Show the placeholder if it's missing
-          if (!currentPlaceholder) {
-              itemsContainer.innerHTML = emptyRowPlaceholderHtml;
-          }
-      } else {
-          // Remove the placeholder if it exists and there are items
-          if (currentPlaceholder) {
-              currentPlaceholder.remove();
-          }
+    const currentPlaceholder = document.getElementById('empty-row-placeholder');
+    if (itemsContainer.querySelectorAll('.sale-item-row').length === 0) {
+      if (!currentPlaceholder) {
+        itemsContainer.innerHTML = emptyRowPlaceholderHtml;
       }
+    } else {
+      if (currentPlaceholder) {
+        currentPlaceholder.remove();
+      }
+    }
   }
 
   function recalc() {
     total = 0;
-    itemsContainer.querySelectorAll('.sale-item').forEach(function(it) {
-      const price = parseFloat(it.querySelector('.unit-price').value || 0);
-      const qty = parseInt(it.querySelector('.qty').value || 0, 10);
+    itemsContainer.querySelectorAll('.sale-item-row').forEach(function(row) {
+      const price = parseFloat(row.querySelector('.unit-price-input').value || 0);
+      const qty = parseInt(row.querySelector('.qty-input').value || 0, 10);
       const line = price * qty;
-      it.querySelector('.line-total').innerText = 'KES ' + line.toFixed(2);
+      row.querySelector('.line-total').innerText = 'KES ' + line.toFixed(2);
       total += line;
     });
     totalEl.innerText = 'KES ' + total.toFixed(2);
@@ -297,59 +358,72 @@
 
   function addItem(id, name, price, minprice, qty = 1) {
     const tr = document.createElement('tr');
-    tr.className = 'sale-item';
+    tr.className = 'sale-item-row transition-all duration-200';
     tr.setAttribute('role', 'row');
     tr.innerHTML = `
-      <td>
-        <input type="hidden" name="item-${itemIndex}-product_id" class="product-id" value="${id}">
-        <span class="item-product-name-cell">${name}</span>
-      </td>
-      <td style="text-align: right;">
+      <td class="font-semibold text-teal-700">${name}</td>
+      <td class="text-right">
         <div class="flex flex-col items-end gap-1">
-          <div class="flex items-center gap-1">
-            <span class="text-gray-600 text-sm font-medium">KES</span>
-            <input name="item-${itemIndex}-unit_price" class="unit-price table-input price-input" value="${price.toFixed(2)}" aria-label="Unit price for ${name}">
+          <div class="flex items-center justify-end gap-1">
+            <span class="text-gray-500 text-xs">KES</span>
+            <input type="hidden" name="item-${itemIndex}-product_id" value="${id}">
+            <input name="item-${itemIndex}-unit_price" class="unit-price-input table-sleek-input" value="${price.toFixed(2)}" min="${minprice}" step="0.01" placeholder="0.00" style="text-align: right; width: 80px; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 4px; font-family: inherit; font-size: 14px; background: white; transition: border-color 0.3s, box-shadow 0.3s; min-width: 60px;">
           </div>
-          <span class="text-xs text-gray-500">Min: KES ${minprice.toFixed(2)}</span>
+          <span class="text-xs text-gray-500">Min: ${minprice.toFixed(2)}</span>
         </div>
       </td>
-      <td style="text-align: right;">
-        <input name="item-${itemIndex}-qty" class="qty table-input qty-input" type="number" min="1" value="${qty}" aria-label="Quantity for ${name}">
+      <td class="text-right">
+        <input name="item-${itemIndex}-qty" class="qty-input table-sleek-input" type="number" min="1" value="${qty}" step="1" placeholder="1" style="text-align: right; width: 80px; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 4px; font-family: inherit; font-size: 14px; background: white; transition: border-color 0.3s, box-shadow 0.3s; min-width: 60px;">
       </td>
-      <td class="item-line-total-cell line-total">KES ${(price * qty).toFixed(2)}</td>
+      <td class="line-total text-teal-600 font-bold">KES ${(price * qty).toFixed(2)}</td>
       <td class="text-center">
-        <button type="button" class="remove-btn text-sm" aria-label="Remove ${name}">Remove</button>
+        <button type="button" class="remove-item-btn" aria-label="Remove item">
+          <i data-lucide="trash-2" class="w-4 h-4 mr-1 inline"></i> Remove
+        </button>
       </td>
     `;
     itemsContainer.appendChild(tr);
 
-    const unitPriceInput = tr.querySelector('.unit-price');
+    const unitPriceInput = tr.querySelector('.unit-price-input');
     unitPriceInput.addEventListener('input', function() {
-      const val = parseFloat(this.value || 0);
+      let val = parseFloat(this.value || 0);
       if (val < minprice) {
-        alert('Price cannot be lower than min price: KES ' + minprice.toFixed(2));
         this.value = minprice.toFixed(2);
+        val = minprice;
       }
       recalc();
     });
-    tr.querySelector('.qty').addEventListener('input', recalc);
-    tr.querySelector('.remove-btn').addEventListener('click', () => {
-      tr.remove();
+
+    tr.querySelector('.qty-input').addEventListener('input', function() {
+      if (parseInt(this.value) < 1) this.value = 1;
       recalc();
+    });
+
+    const removeBtn = tr.querySelector('.remove-item-btn');
+    removeBtn.addEventListener('click', () => {
+      tr.style.opacity = '0';
+      tr.style.transform = 'translateX(-10px)';
+      setTimeout(() => {
+        tr.remove();
+        recalc();
+      }, 200);
     });
 
     itemIndex++;
     recalc();
+    updatePlaceholder();
   }
 
   {% if preselected_product %}
     addItem({{ preselected_product.id }}, "{{ preselected_product.name|escapejs }}", {{ preselected_product.price }}, {{ preselected_product.min_price }});
   {% endif %}
 
-  // Initialize placeholder check on load
-  document.addEventListener('DOMContentLoaded', recalc); 
+  document.addEventListener('DOMContentLoaded', () => {
+    recalc();
+    lucide.createIcons();
+  });
 
-  // --- Search Logic (remains unchanged) ---
+  // Search functionality (retained and enhanced)
   const searchInput = document.getElementById('product-search');
   const searchResults = document.getElementById('search-results');
   let selectedIndex = -1;
@@ -358,39 +432,44 @@
   searchInput.addEventListener('input', function() {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      const term = this.value.toLowerCase();
+      const term = this.value.toLowerCase().trim();
       searchResults.innerHTML = '';
-      searchInput.classList.add('search-loading');
       if (term.length < 1) {
         searchResults.style.display = 'none';
-        searchInput.classList.remove('search-loading');
         return;
       }
       const filtered = products.filter(p => p.name.toLowerCase().includes(term));
+      if (filtered.length === 0) {
+        searchResults.innerHTML = '<div class="p-3 text-gray-500 text-center">No products found</div>';
+        searchResults.style.display = 'block';
+        return;
+      }
       filtered.forEach((p, index) => {
         const div = document.createElement('div');
         div.className = 'search-result-item';
         div.setAttribute('role', 'option');
-        div.setAttribute('aria-selected', 'false');
-        div.tabIndex = -1;
+        div.setAttribute('aria-selected', index === 0 ? 'true' : 'false');
         div.innerHTML = `
-          <div class="font-medium" style="color: #006666;">${p.name}</div>
-          <div class="text-sm text-gray-500">KES ${p.price.toFixed(2)}</div>
+          <div>
+            <div class="font-semibold text-teal-700">${p.name}</div>
+            <div class="text-xs text-gray-500">KES ${p.price.toFixed(2)}</div>
+          </div>
+          <i data-lucide="plus" class="w-4 h-4 text-teal-500"></i>
         `;
         div.addEventListener('click', () => {
           addItem(p.id, p.name, p.price, p.min_price);
-          searchInput.value = '';
+          this.value = '';
           searchResults.style.display = 'none';
           selectedIndex = -1;
         });
         searchResults.appendChild(div);
       });
-      searchResults.style.display = filtered.length > 0 ? 'block' : 'none';
-      searchInput.classList.remove('search-loading');
+      searchResults.style.display = 'block';
       selectedIndex = -1;
-    }, 300);
+    }, 250);
   });
 
+  // Keyboard navigation (retained)
   searchInput.addEventListener('keydown', function(e) {
     const items = searchResults.querySelectorAll('.search-result-item');
     if (items.length === 0) return;
@@ -401,24 +480,33 @@
       updateSelection(items);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      selectedIndex = Math.max(selectedIndex - 1, -1);
+      selectedIndex = Math.max(selectedIndex - 1, 0);
       updateSelection(items);
     } else if (e.key === 'Enter' && selectedIndex >= 0) {
       e.preventDefault();
       items[selectedIndex].click();
+    } else if (e.key === 'Escape') {
+      searchResults.style.display = 'none';
+      this.value = '';
+      selectedIndex = -1;
     }
   });
 
   function updateSelection(items) {
     items.forEach((item, index) => {
-      item.setAttribute('aria-selected', index === selectedIndex ? 'true' : 'false');
-      if (index === selectedIndex) {
+      const isSelected = index === selectedIndex;
+      item.setAttribute('aria-selected', isSelected);
+      if (isSelected) {
+        item.classList.add('bg-teal-50', 'border-teal-200');
         item.focus();
         item.scrollIntoView({ block: 'nearest' });
+      } else {
+        item.classList.remove('bg-teal-50', 'border-teal-200');
       }
     });
   }
 
+  // Close search on outside click
   document.addEventListener('click', function(e) {
     if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
       searchResults.style.display = 'none';
