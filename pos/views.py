@@ -1,4 +1,4 @@
-#views.py
+# Updated views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
@@ -8,7 +8,7 @@ from django.core.mail import send_mail
 from django.urls import reverse
 from django.http import JsonResponse
 from decimal import Decimal
-from django.db.models import Sum, F, ExpressionWrapper, DecimalField
+from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Count
 from .models import Branch, Product, ProductStock, Customer, Sale, SaleItem
 from .forms import ProductForm, ProductStockForm, SaleCreateForm
 from datetime import timedelta, datetime
@@ -41,8 +41,12 @@ def dashboard(request):
         'role': role,
         'user_display_name': get_user_display_name(request.user),
         'products': Product.objects.all(),
-        'categories': Product.objects.values('category').distinct(),
+        'categories': Product.objects.values('category').distinct().annotate(count=Count('id')),
     }
+
+    today = timezone.localdate()
+    low_stock_threshold = 10
+    expiry_days_threshold = 60
 
     if role in ['cashier', 'manager']:
         try:
@@ -51,41 +55,88 @@ def dashboard(request):
             messages.error(request, "User profile or branch not set.")
             return redirect('pos:product_list')
 
-        today = timezone.localdate()
         today_sales = Sale.objects.filter(branch=branch, created_at__date=today).aggregate(total=Sum('total'))['total'] or 0
-        low_stock_threshold = 10
-        expiry_days_threshold = 60
         low_stocks = ProductStock.objects.filter(branch=branch, quantity__lte=low_stock_threshold)
         near_expiries = ProductStock.objects.filter(
             branch=branch,
             expiry_date__lte=today + timedelta(days=expiry_days_threshold),
             expiry_date__isnull=False
         )
+        prescriptions_today = Sale.objects.filter(branch=branch, created_at__date=today).count()  # Proxy for prescriptions
+
+        # Last 7 days sales for chart
+        end_date = today
+        start_date = end_date - timedelta(days=6)
+        daily_sales = []
+        current_date = start_date
+        while current_date <= end_date:
+            day_sales = Sale.objects.filter(
+                branch=branch,
+                created_at__date=current_date
+            ).aggregate(total=Sum('total'))['total'] or 0
+            daily_sales.append(float(day_sales))
+            current_date += timedelta(days=1)
+        sales_trend_data = daily_sales  # For line chart
+        sales_labels = [d.strftime('%a') for d in (start_date + timedelta(n) for n in range(7))]
+
+        recent_sales = Sale.objects.filter(branch=branch).select_related('branch', 'customer').prefetch_related('items__product').order_by('-created_at')[:10]
+
         context.update({
             'today_sales': today_sales,
             'low_stocks': low_stocks,
             'near_expiries': near_expiries,
-            'sales_summary': Sale.objects.filter(branch=branch).aggregate(total=Sum('total'))['total'] or 0 if role == 'manager' else None
+            'prescriptions_today': prescriptions_today,
+            'low_stock_count': low_stocks.count(),
+            'sales_trend_data': sales_trend_data,
+            'sales_labels': sales_labels,
+            'recent_sales': recent_sales,
         })
 
+        if role == 'manager':
+            sales_summary = Sale.objects.filter(branch=branch).aggregate(total=Sum('total'))['total'] or 0
+            context['sales_summary'] = sales_summary
+
     if role == 'admin':
-        branches = Branch.objects.all()
-        branch_sales = {
-            b.name: Sale.objects.filter(branch=b).aggregate(total=Sum('total'))['total'] or 0
-            for b in branches
-        }
-        low_stock_threshold = 10
-        expiry_days_threshold = 60
-        today = timezone.localdate()
+        today_sales = Sale.objects.filter(created_at__date=today).aggregate(total=Sum('total'))['total'] or 0
         low_stocks = ProductStock.objects.filter(quantity__lte=low_stock_threshold)
         near_expiries = ProductStock.objects.filter(
             expiry_date__lte=today + timedelta(days=expiry_days_threshold),
             expiry_date__isnull=False
         )
+        prescriptions_today = Sale.objects.filter(created_at__date=today).count()
+
+        # Last 7 days sales for chart (all branches)
+        end_date = today
+        start_date = end_date - timedelta(days=6)
+        daily_sales = []
+        current_date = start_date
+        while current_date <= end_date:
+            day_sales = Sale.objects.filter(
+                created_at__date=current_date
+            ).aggregate(total=Sum('total'))['total'] or 0
+            daily_sales.append(float(day_sales))
+            current_date += timedelta(days=1)
+        sales_trend_data = daily_sales
+        sales_labels = [d.strftime('%a') for d in (start_date + timedelta(n) for n in range(7))]
+
+        branches = Branch.objects.all()
+        branch_sales = {
+            b.name: Sale.objects.filter(branch=b).aggregate(total=Sum('total'))['total'] or 0
+            for b in branches
+        }
+
+        recent_sales = Sale.objects.select_related('branch', 'customer').prefetch_related('items__product').order_by('-created_at')[:10]
+
         context.update({
+            'today_sales': today_sales,
             'branch_sales': branch_sales,
             'low_stocks': low_stocks,
-            'near_expiries': near_expiries
+            'near_expiries': near_expiries,
+            'prescriptions_today': prescriptions_today,
+            'low_stock_count': low_stocks.count(),
+            'sales_trend_data': sales_trend_data,
+            'sales_labels': sales_labels,
+            'recent_sales': recent_sales,
         })
 
     return render(request, "pos/dashboard.html", context)
