@@ -77,20 +77,8 @@ def dashboard(request):
             expiry_date__lte=today + timedelta(days=expiry_days_threshold),
             expiry_date__isnull=False
         )
-        notifications = []
-        for stock in low_stocks:
-            notifications.append({
-                'message': f"Low stock: {stock.product.name} ({stock.quantity} units, Batch: {stock.batch}) at {stock.branch.name}",
-                'created': today
-            })
-        for stock in near_expiries:
-            notifications.append({
-                'message': f"Near expiry: {stock.product.name} (Batch: {stock.batch}) on {stock.expiry_date} at {stock.branch.name}",
-                'created': today
-            })
         context.update({
             'branch_sales': branch_sales,
-            'notifications': notifications,
             'low_stocks': low_stocks,
             'near_expiries': near_expiries
         })
@@ -199,6 +187,35 @@ def receipt_view(request, sale_id):
     return render(request, "pos/receipt.html", {"sale": sale})
 
 @login_required
+def get_notifications(request):
+    if not request.user.is_superuser:
+        return JsonResponse({'notifications': [], 'unread_count': 0})
+    today = timezone.localdate()
+    low_stock_threshold = 10
+    expiry_days_threshold = 60
+    low_stocks = ProductStock.objects.filter(quantity__lte=low_stock_threshold)
+    near_expiries = ProductStock.objects.filter(
+        expiry_date__lte=today + timedelta(days=expiry_days_threshold),
+        expiry_date__isnull=False
+    )
+    notifications = []
+    for stock in low_stocks:
+        notifications.append({
+            'id': f"low_{stock.id}_{today}",
+            'message': f"Low stock: {stock.product.name} ({stock.quantity} units, Batch: {stock.batch}) at {stock.branch.name}",
+            'created': today.isoformat(),
+            'type': 'low_stock'
+        })
+    for stock in near_expiries:
+        notifications.append({
+            'id': f"exp_{stock.id}_{today}",
+            'message': f"Near expiry: {stock.product.name} (Batch: {stock.batch}) on {stock.expiry_date} at {stock.branch.name}",
+            'created': today.isoformat(),
+            'type': 'expiry'
+        })
+    return JsonResponse({'notifications': notifications})
+
+@login_required
 def reports(request):
     branches = Branch.objects.all()
     today = timezone.localdate()
@@ -296,19 +313,6 @@ def reports(request):
     elif alert_type == 'expiry':
         low_stocks = ProductStock.objects.none()
 
-    notifications = []
-    if request.user.is_superuser:
-        for stock in low_stocks:
-            notifications.append({
-                'message': f"Low stock: {stock.product.name} ({stock.quantity} units, Batch: {stock.batch}) at {stock.branch.name}",
-                'created': today
-            })
-        for stock in near_expiries:
-            notifications.append({
-                'message': f"Near expiry: {stock.product.name} (Batch: {stock.batch}) on {stock.expiry_date} at {stock.branch.name}",
-                'created': today
-            })
-
     daily_data = []
     current_date = start_date
     while current_date <= end_date:
@@ -342,7 +346,6 @@ def reports(request):
         'branches': branches,
         'low_stocks': low_stocks,
         'near_expiries': near_expiries,
-        'notifications': notifications,
         'role': 'admin' if request.user.is_superuser else 'manager' if is_manager(request.user) else 'cashier',
         'total_sales': total_sales,
         'total_profit': total_profit,

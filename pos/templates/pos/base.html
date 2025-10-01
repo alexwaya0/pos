@@ -4,11 +4,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Amigo POS™ - {% block title %}{% endblock %}</title>
+  <title>Azaria Pharmacy - {% block title %}{% endblock %}</title>
 
   {# --- FAVICON VIA CDN LINK --- #}
-  <link rel="icon" type="image/png" href="https://lucide.dev/favicon.png" /> 
-  {# NOTE: Replace the above URL with the direct link to your actual hosted favicon. #}
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/64/7227/7227090.png" /> 
+  {# NOTE: Pill icon for pharmacy favicon #}
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -156,6 +156,85 @@
     .page-title-group > * {
         transition: opacity 0.3s ease-in-out;
     }
+
+    /* Modal Animations */
+    #notifications-modal {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    #notifications-modal.hidden {
+      animation: fadeOut 0.2s ease-in forwards;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+      }
+    }
+
+    .modal-content {
+      animation: slideInLeft 0.3s ease-out;
+    }
+
+    @keyframes slideInLeft {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    #notifications-list li {
+      transition: all 0.2s ease-in-out;
+    }
+
+    #notifications-list li:hover {
+      transform: translateX(4px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Notification item styles */
+    .notification-unread {
+      background-color: #dbeafe;
+      border-left: 4px solid #3b82f6;
+    }
+
+    .notification-read {
+      background-color: #f3f4f6;
+    }
+
+    .mark-btn {
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .mark-read {
+      background-color: #10b981;
+      color: white;
+    }
+
+    .mark-unread {
+      background-color: #ef4444;
+      color: white;
+    }
   </style>
 </head>
 <body class="min-h-screen">
@@ -170,12 +249,11 @@
       <div class="p-5">
         <div class="flex items-center gap-3 mb-5">
           {# ICON IN CUBED (SQUARE) BACKGROUND - using <figure> for semantics #}
-          <figure class="w-11 h-11 rounded-none bg-white/8 flex items-center justify-center text-lg" role="img" aria-label="Amigo POS Logo">
-            <i data-lucide="gem" class="w-6 h-6"></i>
+          <figure class="w-11 h-11 rounded-lg bg-white/8 flex items-center justify-center text-lg" role="img" aria-label="Azaria Pharmacy Logo">
+            <i data-lucide="stethoscope" class="w-6 h-6"></i>
           </figure>
           <div>
-            <div class="text-lg font-semibold">Amigo POS™</div>
-            <div class="text-sm text-white/80">Kenya • Cash POS</div>
+            <div class="text-lg font-semibold">Azaria Pharmacy</div>
           </div>
         </div>
 
@@ -229,10 +307,16 @@
               {% if request.resolver_match and request.resolver_match.url_name not in 'login signup' %}
                 {% if request.user.is_authenticated %}
                   <div class="flex items-center gap-3">
+                    <div class="relative" id="bell-container">
+                      <button id="notifications-bell" class="p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gold" aria-label="Notifications">
+                        <i data-lucide="bell-ring" class="w-5 h-5 text-gray-600"></i>
+                        <span id="unread-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-5 flex items-center justify-center" style="display: none;">0</span>
+                      </button>
+                    </div>
                     <span class="text-gray-700 font-medium hidden sm:inline">Salutations, {{ request.user.get_username }}</span>
                     <form action="{% url 'pos:logout' %}" method="post" class="inline">
                       {% csrf_token %}
-                      <button type="submit" class="btn-logout">
+                      <button type="submit" class="btn-logout focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                         <i data-lucide="log-out" class="w-4 h-4"></i>
                         <span class="hidden sm:inline">Logout</span>
                       </button>
@@ -274,6 +358,39 @@
       </main>
     </div>
   </div>
+
+  {# Notifications Modal #}
+  <div id="notifications-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+      <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+      <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full modal-content">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+          <div class="sm:flex sm:items-start">
+            <div class="mt-3 text-center sm:ml-4 sm:text-left">
+              <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                Notifications
+              </h3>
+              <div class="mt-2">
+                <ul id="notifications-list" class="space-y-2 max-h-96 overflow-y-auto">
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+          <button id="close-notifications" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-gold text-base font-medium text-darkgreen hover:bg-gold-dark sm:ml-3 sm:w-auto sm:text-sm">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Notification Sound #}
+  <audio id="notifySound" preload="auto">
+    <source src="https://freesound.org/data/previews/571/571513_12600480-lq.mp3" type="audio/mpeg">
+  </audio>
 
   <script>
     // Render lucide icons
@@ -345,6 +462,103 @@
           });
         }
       });
+    })();
+
+    // Notifications functionality
+    (function() {
+      if (!{% if user.is_superuser %}true{% else %}false{% endif %}) return; // Only for superuser
+
+      let unreadIds = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+      let allNotifications = [];
+
+      function updateBadge(count) {
+        const badge = document.getElementById('unread-badge');
+        if (count > 0) {
+          badge.textContent = count;
+          badge.style.display = 'flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+
+      function toggleRead(id) {
+        const index = unreadIds.indexOf(id);
+        if (index > -1) {
+          unreadIds.splice(index, 1);
+        } else {
+          unreadIds.push(id);
+        }
+        localStorage.setItem('readNotifications', JSON.stringify(unreadIds));
+        populateList();
+        updateBadge(allNotifications.filter(n => !unreadIds.includes(n.id)).length);
+      }
+
+      function populateList() {
+        const list = document.getElementById('notifications-list');
+        const unreadCount = allNotifications.filter(n => !unreadIds.includes(n.id)).length;
+        list.innerHTML = allNotifications.map(n => {
+          const isRead = unreadIds.includes(n.id);
+          return `
+            <li class="p-3 border border-gray-200 rounded-lg shadow-sm ${isRead ? 'notification-read' : 'notification-unread'}">
+              <div class="flex justify-between items-start">
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-gray-900">${n.message}</p>
+                  <p class="text-xs text-gray-500 mt-1">${new Date(n.created).toLocaleDateString()}</p>
+                </div>
+                <button class="mark-btn ${isRead ? 'mark-unread' : 'mark-read'} ml-2" onclick="toggleRead(${n.id})">
+                  ${isRead ? 'Unread' : 'Read'}
+                </button>
+              </div>
+            </li>
+          `;
+        }).join('');
+      }
+
+      async function fetchNotifications() {
+        try {
+          const response = await fetch('{% url "pos:get_notifications" %}');
+          const data = await response.json();
+          allNotifications = data.notifications;
+          const unread = allNotifications.filter(n => !unreadIds.includes(n.id));
+          updateBadge(unread.length);
+
+          // Play sound if unread on initial load
+          if (unread.length > 0 && !window.notificationSoundPlayed) {
+            const audio = document.getElementById('notifySound');
+            audio.play().catch(e => console.log('Sound play failed:', e));
+            window.notificationSoundPlayed = true;
+          }
+
+          // Populate list only when modal open
+          if (!document.getElementById('notifications-modal').classList.contains('hidden')) {
+            populateList();
+          }
+        } catch (e) {
+          console.error('Error fetching notifications:', e);
+        }
+      }
+
+      // Expose toggleRead to global scope for onclick
+      window.toggleRead = toggleRead;
+
+      document.getElementById('notifications-bell').addEventListener('click', () => {
+        document.getElementById('notifications-modal').classList.remove('hidden');
+        populateList();
+      });
+
+      document.getElementById('close-notifications').addEventListener('click', () => {
+        document.getElementById('notifications-modal').classList.add('hidden');
+      });
+
+      document.querySelector('#notifications-modal .fixed.inset-0').addEventListener('click', (e) => {
+        if (e.target.classList.contains('fixed')) {
+          document.getElementById('notifications-modal').classList.add('hidden');
+        }
+      });
+
+      // Poll every 30 seconds
+      setInterval(fetchNotifications, 30000);
+      fetchNotifications(); // Initial load
     })();
   </script>
 </body>

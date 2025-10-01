@@ -284,29 +284,32 @@
       <table id="stock-table">
         <thead>
           <tr>
-            <th>Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th>Opening Stock <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th>Sold <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th>Closing Stock <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th>Turnover Rate <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th>#</th>
+            <th data-sort="product_name">Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="opening">Opening Stock <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="sold">Sold <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="closing">Closing Stock <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th data-sort="turnover">Turnover Rate <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
           </tr>
         </thead>
         <tbody>
           {% for item in stock_report %}
             <tr>
-              <td data-sort="product_name">{{ item.product_name|default:"Unknown" }}</td>
-              <td data-sort="opening">{{ item.opening|default:0 }}</td>
-              <td data-sort="sold">{{ item.sold|default:0 }}</td>
-              <td data-sort="closing">{{ item.closing|default:0 }}</td>
-              <td data-sort="turnover" class="{% if item.turnover > 2 %}turnover-high{% elif item.turnover < 1 %}turnover-low{% else %}turnover-medium{% endif %}">{{ item.turnover|default:"0.00" }}</td>
+              <td class="row-num"></td>
+              <td>{{ item.product_name|default:"Unknown" }}</td>
+              <td>{{ item.opening|default:0 }}</td>
+              <td>{{ item.sold|default:0 }}</td>
+              <td>{{ item.closing|default:0 }}</td>
+              <td class="{% if item.turnover > 2 %}turnover-high{% elif item.turnover < 1 %}turnover-low{% else %}turnover-medium{% endif %}">{{ item.turnover|default:"0.00" }}</td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="5" class="no-data">No stock data available</td>
+              <td colspan="6" class="no-data">No stock data available</td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
+      <div class="pagination" id="stock-pagination"></div>
     </div>
   </div>
 
@@ -321,6 +324,7 @@
       <table id="low-stock-table">
         <thead>
           <tr>
+            <th>#</th>
             <th data-sort="product">Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
             <th data-sort="quantity">Quantity <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
             <th data-sort="branch">Branch <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
@@ -329,17 +333,19 @@
         <tbody>
           {% for stock in low_stocks %}
             <tr data-type="low_stock">
-              <td data-sort="product">{{ stock.product.name|default:"Unknown" }}</td>
-              <td data-sort="quantity">{{ stock.quantity|default:0 }}</td>
-              <td data-sort="branch">{{ stock.branch.name|default:"Unknown" }}</td>
+              <td class="row-num"></td>
+              <td>{{ stock.product.name|default:"Unknown" }}</td>
+              <td>{{ stock.quantity|default:0 }}</td>
+              <td>{{ stock.branch.name|default:"Unknown" }}</td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="3" class="no-data">No low stock items</td>
+              <td colspan="4" class="no-data">No low stock items</td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
+      <div class="pagination" id="low-stock-pagination"></div>
     </div>
   </div>
 
@@ -354,6 +360,7 @@
       <table id="expiry-table">
         <thead>
           <tr>
+            <th>#</th>
             <th data-sort="product">Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
             <th data-sort="expiry_date">Expiry Date <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
             <th data-sort="branch">Branch <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
@@ -362,65 +369,33 @@
         <tbody>
           {% for stock in near_expiries %}
             <tr data-type="expiry" data-expiry="{{ stock.expiry_date|date:'Y-m-d' }}">
-              <td data-sort="product">{{ stock.product.name|default:"Unknown" }}</td>
-              <td data-sort="expiry_date">{{ stock.expiry_date|date:"M d, Y"|default:"N/A" }}</td>
-              <td data-sort="branch">{{ stock.branch.name|default:"Unknown" }}</td>
+              <td class="row-num"></td>
+              <td>{{ stock.product.name|default:"Unknown" }}</td>
+              <td>{{ stock.expiry_date|date:"M d, Y"|default:"N/A" }}</td>
+              <td>{{ stock.branch.name|default:"Unknown" }}</td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="3" class="no-data">No expiring items</td>
+              <td colspan="4" class="no-data">No expiring items</td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
+      <div class="pagination" id="expiry-pagination"></div>
     </div>
   </div>
-
-  <!-- Admin Notifications -->
-  {% if user.is_superuser and notifications %}
-  <div class="table-container">
-    <div class="collapsible-header">
-      <h3 class="text-gold">All Alerts</h3>
-      <svg class="toggle-icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-    </div>
-    <div class="collapsible-content active">
-      <input type="text" id="notifications-search" class="search-input" placeholder="Search alerts...">
-      <table id="notifications-table">
-        <thead>
-          <tr>
-            <th data-sort="message">Message <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th data-sort="created">Date <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for notification in notifications %}
-            <tr data-type="{% if 'Low stock' in notification.message %}low_stock{% elif 'Near expiry' in notification.message %}expiry{% endif %}">
-              <td data-sort="message">{{ notification.message|default:"No message" }}</td>
-              <td data-sort="created">{{ notification.created|date:"M d, Y"|default:"N/A" }}</td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="2" class="no-data">No active alerts</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-  {% endif %}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
 <script>
   // Chart Data from Django Context (initial load)
   const initialDates = [{% for d in daily_data %}'{{ d.date|date:"M d" }}',{% endfor %}];
-  const initialSalesData = [{% for d in daily_data %}{{ d.sales|floatformat:2 }},{% endfor %}];
-  const initialProfitsData = [{% for d in daily_data %}{{ d.profit|floatformat:2 }},{% endfor %}];
+  const initialSalesData = [{% for d in daily_data %}{{ d.sales|float }},{% endfor %}];
+  const initialProfitsData = [{% for d in daily_data %}{{ d.profit|float }},{% endfor %}];
   const initialTrendSales = {{ trend_sales|safe }};
   const initialTrendProfits = {{ trend_profits|safe }};
   const initialProductNames = [{% for m in most_selling %}'{{ m.product__name }}',{% endfor %}];
-  const initialProductRevenues = [{% for m in most_selling %}{{ m.total_revenue|floatformat:2 }},{% endfor %}];
+  const initialProductRevenues = [{% for m in most_selling %}{{ m.total_revenue|float }},{% endfor %}];
 
   let salesChart, profitChart, topProductsChart;
 
@@ -500,7 +475,8 @@
 
     // Add pagination controls
     const content = table.closest('.collapsible-content');
-    const paginationDiv = document.createElement('div');
+    const paginationDiv = document.getElementById(`${tableId}-pagination`) || document.createElement('div');
+    paginationDiv.id = `${tableId}-pagination`;
     paginationDiv.className = 'pagination';
     paginationDiv.innerHTML = `
       <div class="flex items-center">
@@ -517,7 +493,7 @@
         <button id="${tableId}-next-btn" class="px-3 py-1 bg-gray-200 rounded disabled:opacity-50" onclick="nextPage('${tableId}')">Next</button>
       </div>
     `;
-    content.appendChild(paginationDiv);
+    if (!document.getElementById(`${tableId}-pagination`)) content.appendChild(paginationDiv);
 
     // Event listeners for pagination
     document.getElementById(`${tableId}-rows-select`).addEventListener('change', (e) => changeRowsPerPage(tableId, e.target.value));
@@ -689,7 +665,7 @@
   // Chart initialization
   document.addEventListener('DOMContentLoaded', () => {
     // Init tables
-    ['stock-table', 'low-stock-table', 'expiry-table', 'notifications-table'].forEach(initTable);
+    ['stock-table', 'low-stock-table', 'expiry-table'].forEach(initTable); // Removed notifications-table
 
     const hasInitialData = initialDates.length > 0;
     toggleChartVisibility('sales-chart-container', 'salesChart', 'sales-no-data', hasInitialData);
@@ -731,10 +707,6 @@
         interaction: { intersect: false, mode: 'index' },
         scales: { y: { beginAtZero: true } },
         plugins: {
-          zoom: {
-            pan: { enabled: true, mode: 'xy' },
-            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' }
-          },
           legend: { display: true }
         }
       }
@@ -772,10 +744,6 @@
         interaction: { intersect: false, mode: 'index' },
         scales: { y: { beginAtZero: false } },
         plugins: {
-          zoom: {
-            pan: { enabled: true, mode: 'xy' },
-            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' }
-          },
           legend: { display: true }
         }
       }
@@ -870,7 +838,6 @@
     document.getElementById('stock-search')?.addEventListener('input', e => filterTable('stock-table', e.target.value));
     document.getElementById('low-stock-search')?.addEventListener('input', e => filterTable('low-stock-table', e.target.value));
     document.getElementById('expiry-search')?.addEventListener('input', e => filterTable('expiry-table', e.target.value));
-    document.getElementById('notifications-search')?.addEventListener('input', e => filterTable('notifications-table', e.target.value));
 
     document.getElementById('alert-type').addEventListener('change', applyFilters);
     document.getElementById('branch').addEventListener('change', () => document.getElementById('filter-form').submit());
@@ -905,14 +872,6 @@
     const alertType = document.getElementById('alert-type').value;
     document.getElementById('low-stock-container').style.display = alertType === '' || alertType === 'low_stock' ? '' : 'none';
     document.getElementById('expiry-container').style.display = alertType === '' || alertType === 'expiry' ? '' : 'none';
-
-    const notificationsTable = document.getElementById('notifications-table');
-    if (notificationsTable) {
-      notificationsTable.querySelectorAll('tbody tr').forEach(row => {
-        row.style.display = alertType && row.dataset.type !== alertType ? 'none' : '';
-      });
-      displayPage('notifications-table');
-    }
   }
 
   function resetFilters() {

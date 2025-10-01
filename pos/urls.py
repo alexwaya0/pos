@@ -13,4 +13,6 @@ urlpatterns = [
     path("sales/new/", views.sale_create, name="sale_create"),
     path("receipt/<int:sale_id>/", views.receipt_view, name="receipt"),
     path("reports/", views.reports, name="reports"),
+
+    path('get-notifications/', views.get_notifications, name='get_notifications'),
 ]
