@@ -313,10 +313,21 @@
             <i data-lucide="boxes" class="w-4 h-4"></i>
             <span>Products</span>
           </a>
+          {% if user.is_superuser %}
           <a href="{% url 'pos:reports' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name == 'reports' %}active{% endif %}">
             <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
             <span>Reports</span>
           </a>
+          {% else %}
+          {% for group in user.groups.all %}
+          {% if group.name == 'Manager' %}
+          <a href="{% url 'pos:reports' %}" class="nav-link {% if request.resolver_match and request.resolver_match.url_name == 'reports' %}active{% endif %}">
+            <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+            <span>Reports</span>
+          </a>
+          {% endif %}
+          {% endfor %}
+          {% endif %}
         </nav>
       </div>
       <div class="mt-auto p-4 border-t border-white/6 text-center sidebar-footer">
@@ -350,6 +361,7 @@
               {% if request.resolver_match and request.resolver_match.url_name not in 'login signup' %}
                 {% if request.user.is_authenticated %}
                   <div class="flex items-center gap-3">
+                    {% if user.is_superuser %}
                     <div class="relative" id="bell-container">
                       <button id="notifications-bell" class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gold transition-all duration-200" aria-label="Notifications">
                         <i data-lucide="bell-ring" class="w-5 h-5 text-gray-600"></i>
@@ -370,7 +382,8 @@
                         </div>
                       </div>
                     </div>
-                    <span class="text-gray-700 font-medium hidden sm:inline">Salutations, {{ request.user.get_username }}</span>
+                    {% endif %}
+                    <span class="text-gray-700 font-medium hidden sm:inline">Salutations, {{ user.first_name|default:user.get_username }}</span>
                     <form action="{% url 'pos:logout' %}" method="post" class="inline">
                       {% csrf_token %}
                       <button type="submit" class="btn-logout focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
@@ -518,13 +531,8 @@
         }
       }
 
-      function toggleRead(id) {
-        const index = readIds.indexOf(id);
-        if (index > -1) {
-          // Mark as unread
-          readIds.splice(index, 1);
-        } else {
-          // Mark as read
+      function markAsRead(id) {
+        if (!readIds.includes(id)) {
           readIds.push(id);
           // Play subtle sound on read
           notifySound.volume = 0.3;
@@ -537,7 +545,33 @@
         updateBadge(unreadCount);
       }
 
+      function markAsUnread(id) {
+        const index = readIds.indexOf(id);
+        if (index > -1) {
+          readIds.splice(index, 1);
+        }
+        localStorage.setItem('readNotifications', JSON.stringify(readIds));
+        populateList();
+        const unreadCount = allNotifications.filter(n => !readIds.includes(n.id)).length;
+        updateBadge(unreadCount);
+      }
+
       function markAllAsRead() {
+        const previouslyUnread = allNotifications.filter(n => !readIds.includes(n.id));
+        allNotifications.forEach(n => {
+          if (!readIds.includes(n.id)) {
+            readIds.push(n.id);
+          }
+        });
+        localStorage.setItem('readNotifications', JSON.stringify(readIds));
+        populateList();
+        updateBadge(0);
+        closeDropdown(); // Close the dropdown after marking all as read
+        // Haptic feedback simulation
+        if (navigator.vibrate) navigator.vibrate(50);
+      }
+
+      function markAllWithoutClose() {
         const previouslyUnread = allNotifications.filter(n => !readIds.includes(n.id));
         allNotifications.forEach(n => {
           if (!readIds.includes(n.id)) {
@@ -581,9 +615,10 @@
                   <p class="text-sm font-medium text-gray-900">${n.message}</p>
                   <p class="relative-time mt-1">${relativeTime}</p>
                 </div>
-                <button class="mark-btn ${isRead ? 'mark-unread' : 'mark-read'} ml-2" data-id="${n.id}">
-                  ${isRead ? 'Unread' : 'Read'}
-                </button>
+                <div class="flex gap-1 ml-2">
+                  <button class="mark-btn mark-read ${isRead ? 'hidden' : ''}" data-id="${n.id}">Mark as Read</button>
+                  <button class="mark-btn mark-unread ${!isRead ? 'hidden' : ''}" data-id="${n.id}">Mark as Unread</button>
+                </div>
               </div>
             </li>
           `;
@@ -594,6 +629,7 @@
         dropdown.classList.remove('hidden');
         dropdownOpen = true;
         populateList();
+        markAllWithoutClose(); // Mark all as read without closing when opening
         // Auto-close after 10s inactivity
         clearTimeout(window.dropdownTimeout);
         window.dropdownTimeout = setTimeout(closeDropdown, 10000);
@@ -630,9 +666,13 @@
 
       // Event delegation for mark buttons
       notificationsList.addEventListener('click', (e) => {
-        if (e.target.classList.contains('mark-btn')) {
-          const id = parseInt(e.target.dataset.id);
-          toggleRead(id);
+        if (e.target.classList.contains('mark-read')) {
+          const id = e.target.dataset.id;
+          markAsRead(id);
+          e.stopPropagation();
+        } else if (e.target.classList.contains('mark-unread')) {
+          const id = e.target.dataset.id;
+          markAsUnread(id);
           e.stopPropagation();
         }
       });

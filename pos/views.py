@@ -1,3 +1,4 @@
+#views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
@@ -22,6 +23,9 @@ def is_cashier(user):
 def is_manager(user):
     return in_group(user, "Manager")
 
+def get_user_display_name(user):
+    return user.first_name or user.username
+
 @login_required
 def dashboard(request):
     if request.user.is_superuser:
@@ -35,6 +39,7 @@ def dashboard(request):
 
     context = {
         'role': role,
+        'user_display_name': get_user_display_name(request.user),
         'products': Product.objects.all(),
         'categories': Product.objects.values('category').distinct(),
     }
@@ -178,13 +183,20 @@ def sale_create(request):
     return render(request, "pos/sale_create.html", {
         "form": form,
         "products": products,
-        "preselected_product": preselected_product
+        "preselected_product": preselected_product,
+        "user_display_name": get_user_display_name(request.user)
     })
 
 @login_required
 def receipt_view(request, sale_id):
     sale = get_object_or_404(Sale, pk=sale_id)
-    return render(request, "pos/receipt.html", {"sale": sale})
+    if request.method == 'POST':
+        # Handle close action, redirect back to sale_create
+        return redirect('pos:sale_create')
+    return render(request, "pos/receipt.html", {
+        "sale": sale,
+        "cashier_display_name": get_user_display_name(sale.cashier) if sale.cashier else 'Unknown'
+    })
 
 @login_required
 def get_notifications(request):
@@ -347,6 +359,7 @@ def reports(request):
         'low_stocks': low_stocks,
         'near_expiries': near_expiries,
         'role': 'admin' if request.user.is_superuser else 'manager' if is_manager(request.user) else 'cashier',
+        'user_display_name': get_user_display_name(request.user),
         'total_sales': total_sales,
         'total_profit': total_profit,
         'inventory_turnover': inventory_turnover,
