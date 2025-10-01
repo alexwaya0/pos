@@ -179,6 +179,7 @@
       backdrop-filter: blur(20px);
       background: var(--glass-bg);
       border: 1px solid var(--glass-border);
+      max-width: 90vw;
     }
 
     #notifications-dropdown:not(.hidden) {
@@ -205,7 +206,7 @@
     }
 
     #notifications-list li:hover {
-      transform: translateX(4px) scale(1.02);
+      transform: scale(1.02);
       box-shadow: var(--neon-glow);
       background: rgba(255, 255, 255, 0.2);
     }
@@ -571,20 +572,6 @@
         if (navigator.vibrate) navigator.vibrate(50);
       }
 
-      function markAllWithoutClose() {
-        const previouslyUnread = allNotifications.filter(n => !readIds.includes(n.id));
-        allNotifications.forEach(n => {
-          if (!readIds.includes(n.id)) {
-            readIds.push(n.id);
-          }
-        });
-        localStorage.setItem('readNotifications', JSON.stringify(readIds));
-        populateList();
-        updateBadge(0);
-        // Haptic feedback simulation
-        if (navigator.vibrate) navigator.vibrate(50);
-      }
-
       function formatRelativeTime(date) {
         const now = new Date();
         const diff = now - date;
@@ -629,7 +616,6 @@
         dropdown.classList.remove('hidden');
         dropdownOpen = true;
         populateList();
-        markAllWithoutClose(); // Mark all as read without closing when opening
         // Auto-close after 10s inactivity
         clearTimeout(window.dropdownTimeout);
         window.dropdownTimeout = setTimeout(closeDropdown, 10000);
