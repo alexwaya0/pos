@@ -351,7 +351,7 @@ def reports(request):
         'daily_data': daily_data,
         'trend_sales': [round(val, 2) for val in trend_sales],
         'trend_profits': [round(val, 2) for val in trend_profits],
-        'start_date': start_date.strftime('%Y-%m-%d'),
-        'end_date': end_date.strftime('%Y-%m-%d'),
+        'start_date': start_date,
+        'end_date': end_date,
     }
     return render(request, "pos/reports.html", context)
