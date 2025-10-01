@@ -127,11 +127,11 @@
       box-shadow: 0 8px 25px 0 rgba(212, 175, 55, 0.4);
     }
     
-    /* Enhanced Logout Button (Themed Outline with Gradient Glow - Further Enhanced) */
+    /* Enhanced Engraved Logout Button */
     .btn-logout {
-      background: transparent;
-      border: 1px solid var(--gold);
-      color: var(--gold);
+      background: linear-gradient(145deg, #f8f9fa, #e9ecef); /* Subtle bevel for engraved look */
+      border: 1px solid #dee2e6;
+      color: #495057;
       padding: .4rem .8rem;
       border-radius: .4rem;
       font-weight: 700;
@@ -141,17 +141,17 @@
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
       overflow: hidden;
-      box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.1); /* Inset shadow for engraving */
       text-transform: uppercase;
       letter-spacing: 0.5px;
       font-size: 0.875rem;
     }
     .btn-logout:hover {
-      background: linear-gradient(135deg, var(--darkgreen), #0b3a2b);
-      border-color: var(--gold-dark);
-      color: white;
-      box-shadow: 0 6px 20px rgba(6, 68, 32, 0.5), var(--neon-glow), inset 0 0 20px rgba(212, 175, 55, 0.1);
-      transform: translateY(-2px) scale(1.02);
+      background: linear-gradient(145deg, #e9ecef, #dee2e6);
+      border-color: #adb5bd;
+      color: #212529;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.15), var(--neon-glow); /* Deeper inset on hover */
+      transform: translateY(-1px);
     }
     .btn-logout::before {
       content: '';
@@ -239,6 +239,13 @@
     /* Smooth Title Transition for main content */
     .page-title-group > * {
         transition: opacity 0.3s ease-in-out;
+    }
+
+    /* Enhanced Header/Nav Bar */
+    header {
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
 
     /* Enhanced Notification Dropdown Styles - More Futuristic Glassmorphism */
