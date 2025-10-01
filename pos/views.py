@@ -5,6 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.urls import reverse
+from django.http import JsonResponse
 from decimal import Decimal
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 from .models import Branch, Product, ProductStock, Customer, Sale, SaleItem
@@ -354,4 +355,33 @@ def reports(request):
         'start_date': start_date,
         'end_date': end_date,
     }
+
+    # Check for AJAX request for real-time updates
+    x_requested_with = request.META.get('HTTP_X_REQUESTED_WITH', '')
+    if x_requested_with == 'XMLHttpRequest':
+        daily_serial = [
+            {
+                'date': d['date'].strftime('%b %d'),
+                'sales': float(d['sales']),
+                'profit': float(d['profit'])
+            }
+            for d in daily_data
+        ]
+        most_serial = [
+            {
+                'name': m['product__name'],
+                'revenue': float(m['total_revenue'])
+            }
+            for m in most_selling
+        ]
+        trend_sales_list = [round(float(v), 2) for v in trend_sales]
+        trend_profits_list = [round(float(v), 2) for v in trend_profits]
+        data = {
+            'daily_data': daily_serial,
+            'trend_sales': trend_sales_list,
+            'trend_profits': trend_profits_list,
+            'most_selling': most_serial,
+        }
+        return JsonResponse(data)
+
     return render(request, "pos/reports.html", context)

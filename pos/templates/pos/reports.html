@@ -383,34 +383,37 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
 <script>
-  // Chart Data from Django Context
-  const dates = [{% for d in daily_data %}'{{ d.date|date:"M d" }}',{% endfor %}];
-  const salesData = [{% for d in daily_data %}{{ d.sales }},{% endfor %}];
-  const profitsData = [{% for d in daily_data %}{{ d.profit }},{% endfor %}];
-  const trendSales = {{ trend_sales|safe }};
-  const trendProfits = {{ trend_profits|safe }};
-  const productNames = [{% for m in most_selling %}'{{ m.product__name }}',{% endfor %}];
-  const productRevenues = [{% for m in most_selling %}{{ m.total_revenue }},{% endfor %}];
+  // Chart Data from Django Context (initial load)
+  const initialDates = [{% for d in daily_data %}'{{ d.date|date:"M d" }}',{% endfor %}];
+  const initialSalesData = [{% for d in daily_data %}{{ d.sales }},{% endfor %}];
+  const initialProfitsData = [{% for d in daily_data %}{{ d.profit }},{% endfor %}];
+  const initialTrendSales = {{ trend_sales|safe }};
+  const initialTrendProfits = {{ trend_profits|safe }};
+  const initialProductNames = [{% for m in most_selling %}'{{ m.product__name }}',{% endfor %}];
+  const initialProductRevenues = [{% for m in most_selling %}{{ m.total_revenue }},{% endfor %}];
+
+  let salesChart, profitChart, topProductsChart;
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Charts
+    // Initialize Charts with initial data and enhanced options
     const salesCtx = document.getElementById('salesChart').getContext('2d');
-    new Chart(salesCtx, {
+    salesChart = new Chart(salesCtx, {
       type: 'line',
       data: {
-        labels: dates,
+        labels: initialDates,
         datasets: [
           {
             label: 'Daily Sales (KES)',
-            data: salesData,
+            data: initialSalesData,
             borderColor: 'rgb(59, 130, 246)',
             backgroundColor: 'rgba(59, 130, 246, 0.1)',
             tension: 0.1
           },
           {
             label: 'Trend Line',
-            data: trendSales,
+            data: initialTrendSales,
             borderColor: 'rgb(59, 130, 246)',
             borderDash: [5, 5],
             fill: false,
@@ -421,30 +424,52 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
         scales: {
           y: {
             beginAtZero: true
           }
+        },
+        plugins: {
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: 'xy'
+            },
+            zoom: {
+              wheel: {
+                enabled: true
+              },
+              pinch: {
+                enabled: true
+              },
+              mode: 'xy'
+            }
+          }
         }
-      }
+      },
+      plugins: [ChartZoom]
     });
 
     const profitCtx = document.getElementById('profitChart').getContext('2d');
-    new Chart(profitCtx, {
+    profitChart = new Chart(profitCtx, {
       type: 'line',
       data: {
-        labels: dates,
+        labels: initialDates,
         datasets: [
           {
             label: 'Daily Profit (KES)',
-            data: profitsData,
+            data: initialProfitsData,
             borderColor: 'rgb(34, 197, 94)',
             backgroundColor: 'rgba(34, 197, 94, 0.1)',
             tension: 0.1
           },
           {
             label: 'Trend Line',
-            data: trendProfits,
+            data: initialTrendProfits,
             borderColor: 'rgb(34, 197, 94)',
             borderDash: [5, 5],
             fill: false,
@@ -455,21 +480,43 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
         scales: {
           y: {
             beginAtZero: false
           }
+        },
+        plugins: {
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: 'xy'
+            },
+            zoom: {
+              wheel: {
+                enabled: true
+              },
+              pinch: {
+                enabled: true
+              },
+              mode: 'xy'
+            }
+          }
         }
-      }
+      },
+      plugins: [ChartZoom]
     });
 
     const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
-    new Chart(topProductsCtx, {
+    topProductsChart = new Chart(topProductsCtx, {
       type: 'pie',
       data: {
-        labels: productNames,
+        labels: initialProductNames,
         datasets: [{
-          data: productRevenues,
+          data: initialProductRevenues,
           backgroundColor: [
             'rgb(255, 99, 132)',
             'rgb(54, 162, 235)',
@@ -490,13 +537,72 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+          intersect: false
+        },
         plugins: {
           legend: {
             position: 'bottom'
           }
+        },
+        onClick: (e, elements) => {
+          if (elements.length > 0) {
+            const index = elements[0].index;
+            const productName = topProductsChart.data.labels[index];
+            // Filter stock table to show only rows matching the clicked product
+            const stockRows = document.querySelectorAll('#stock-table tbody tr');
+            let visibleCount = 0;
+            stockRows.forEach(row => {
+              const cellText = row.cells[0].textContent.toLowerCase();
+              if (cellText.includes(productName.toLowerCase())) {
+                row.style.display = '';
+                visibleCount++;
+              } else {
+                row.style.display = 'none';
+              }
+            });
+            if (visibleCount === 0) {
+              alert(`No stock data found for "${productName}".`);
+            }
+          }
         }
       }
     });
+
+    // Real-time update function
+    function updateCharts() {
+      fetch(window.location.href, {
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Update Sales Chart
+        const newDates = data.daily_data.map(d => d.date);
+        salesChart.data.labels = newDates;
+        salesChart.data.datasets[0].data = data.daily_data.map(d => d.sales);
+        salesChart.data.datasets[1].data = data.trend_sales;
+        salesChart.update('none'); // Silent update for smooth animation
+
+        // Update Profit Chart
+        profitChart.data.labels = newDates;
+        profitChart.data.datasets[0].data = data.daily_data.map(d => d.profit);
+        profitChart.data.datasets[1].data = data.trend_profits;
+        profitChart.update('none');
+
+        // Update Top Products Pie Chart
+        topProductsChart.data.labels = data.most_selling.map(p => p.name);
+        topProductsChart.data.datasets[0].data = data.most_selling.map(p => p.revenue);
+        topProductsChart.update('none');
+      })
+      .catch(error => {
+        console.error('Error updating charts:', error);
+      });
+    }
+
+    // Poll for updates every 30 seconds
+    setInterval(updateCharts, 30000);
 
     // Utility: Debounce function for search inputs
     const debounce = (func, wait) => {
