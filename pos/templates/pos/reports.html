@@ -136,6 +136,27 @@
     height: 300px;
     width: 100%;
   }
+  .chart-no-data {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #666;
+  }
+  .pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+  }
+  .row-num {
+    font-weight: bold;
+    text-align: center;
+    width: 50px;
+  }
   @media (max-width: 768px) {
     .filter-container {
       grid-template-columns: 1fr;
@@ -149,6 +170,10 @@
     }
     .chart-container {
       height: 250px;
+    }
+    .pagination {
+      flex-direction: column;
+      gap: 0.5rem;
     }
   }
 </style>
@@ -206,7 +231,7 @@
     </div>
     <div class="card">
       <h3 class="text-gold">Total Profit</h3>
-      <p class="text-2xl font-bold {% if total_profit < 0 %}profit-negative{% else %}profit-positive{% endif %} currency-kes">KES {{ total_profit|floatformat:2|default:"0.00" }}</p>
+      <p class="{% if total_profit < 0 %}profit-negative{% else %}profit-positive{% endif %} text-2xl font-bold currency-kes">KES {{ total_profit|floatformat:2|default:"0.00" }}</p>
     </div>
     <div class="card">
       <h3 class="text-gold">Inventory Turnover</h3>
@@ -223,24 +248,27 @@
     <!-- Sales Trend Chart -->
     <div class="card">
       <h3 class="text-gold">Sales Trend</h3>
-      <div class="chart-container">
+      <div class="chart-container" id="sales-chart-container">
         <canvas id="salesChart"></canvas>
+        <div id="sales-no-data" class="chart-no-data" style="display: none;">No data available for the selected filters</div>
       </div>
     </div>
 
     <!-- Profit Trend Chart -->
     <div class="card">
       <h3 class="text-gold">Profit Trend</h3>
-      <div class="chart-container">
+      <div class="chart-container" id="profit-chart-container">
         <canvas id="profitChart"></canvas>
+        <div id="profit-no-data" class="chart-no-data" style="display: none;">No data available for the selected filters</div>
       </div>
     </div>
 
     <!-- Top Selling Products Pie Chart -->
     <div class="card">
       <h3 class="text-gold">Top Selling Products</h3>
-      <div class="chart-container">
+      <div class="chart-container" id="top-products-chart-container">
         <canvas id="topProductsChart"></canvas>
+        <div id="top-products-no-data" class="chart-no-data" style="display: none;">No data available for the selected filters</div>
       </div>
     </div>
   </div>
@@ -256,21 +284,21 @@
       <table id="stock-table">
         <thead>
           <tr>
-            <th data-sort="product_name">Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th data-sort="opening">Opening Stock <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th data-sort="sold">Sold <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th data-sort="closing">Closing Stock <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th data-sort="turnover">Turnover Rate <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th>Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th>Opening Stock <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th>Sold <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th>Closing Stock <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
+            <th>Turnover Rate <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
           </tr>
         </thead>
         <tbody>
           {% for item in stock_report %}
             <tr>
-              <td>{{ item.product_name|default:"Unknown" }}</td>
-              <td>{{ item.opening|default:0 }}</td>
-              <td>{{ item.sold|default:0 }}</td>
-              <td>{{ item.closing|default:0 }}</td>
-              <td class="{% if item.turnover > 2 %}turnover-high{% elif item.turnover < 1 %}turnover-low{% else %}turnover-medium{% endif %}">{{ item.turnover|default:"0.00" }}</td>
+              <td data-sort="product_name">{{ item.product_name|default:"Unknown" }}</td>
+              <td data-sort="opening">{{ item.opening|default:0 }}</td>
+              <td data-sort="sold">{{ item.sold|default:0 }}</td>
+              <td data-sort="closing">{{ item.closing|default:0 }}</td>
+              <td data-sort="turnover" class="{% if item.turnover > 2 %}turnover-high{% elif item.turnover < 1 %}turnover-low{% else %}turnover-medium{% endif %}">{{ item.turnover|default:"0.00" }}</td>
             </tr>
           {% empty %}
             <tr>
@@ -301,9 +329,9 @@
         <tbody>
           {% for stock in low_stocks %}
             <tr data-type="low_stock">
-              <td>{{ stock.product.name|default:"Unknown" }}</td>
-              <td>{{ stock.quantity|default:0 }}</td>
-              <td>{{ stock.branch.name|default:"Unknown" }}</td>
+              <td data-sort="product">{{ stock.product.name|default:"Unknown" }}</td>
+              <td data-sort="quantity">{{ stock.quantity|default:0 }}</td>
+              <td data-sort="branch">{{ stock.branch.name|default:"Unknown" }}</td>
             </tr>
           {% empty %}
             <tr>
@@ -334,9 +362,9 @@
         <tbody>
           {% for stock in near_expiries %}
             <tr data-type="expiry" data-expiry="{{ stock.expiry_date|date:'Y-m-d' }}">
-              <td>{{ stock.product.name|default:"Unknown" }}</td>
-              <td>{{ stock.expiry_date|date:"M d, Y"|default:"N/A" }}</td>
-              <td>{{ stock.branch.name|default:"Unknown" }}</td>
+              <td data-sort="product">{{ stock.product.name|default:"Unknown" }}</td>
+              <td data-sort="expiry_date">{{ stock.expiry_date|date:"M d, Y"|default:"N/A" }}</td>
+              <td data-sort="branch">{{ stock.branch.name|default:"Unknown" }}</td>
             </tr>
           {% empty %}
             <tr>
@@ -367,8 +395,8 @@
         <tbody>
           {% for notification in notifications %}
             <tr data-type="{% if 'Low stock' in notification.message %}low_stock{% elif 'Near expiry' in notification.message %}expiry{% endif %}">
-              <td>{{ notification.message|default:"No message" }}</td>
-              <td>{{ notification.created|date:"M d, Y"|default:"N/A" }}</td>
+              <td data-sort="message">{{ notification.message|default:"No message" }}</td>
+              <td data-sort="created">{{ notification.created|date:"M d, Y"|default:"N/A" }}</td>
             </tr>
           {% empty %}
             <tr>
@@ -387,17 +415,290 @@
 <script>
   // Chart Data from Django Context (initial load)
   const initialDates = [{% for d in daily_data %}'{{ d.date|date:"M d" }}',{% endfor %}];
-  const initialSalesData = [{% for d in daily_data %}{{ d.sales }},{% endfor %}];
-  const initialProfitsData = [{% for d in daily_data %}{{ d.profit }},{% endfor %}];
+  const initialSalesData = [{% for d in daily_data %}{{ d.sales|floatformat:2 }},{% endfor %}];
+  const initialProfitsData = [{% for d in daily_data %}{{ d.profit|floatformat:2 }},{% endfor %}];
   const initialTrendSales = {{ trend_sales|safe }};
   const initialTrendProfits = {{ trend_profits|safe }};
   const initialProductNames = [{% for m in most_selling %}'{{ m.product__name }}',{% endfor %}];
-  const initialProductRevenues = [{% for m in most_selling %}{{ m.total_revenue }},{% endfor %}];
+  const initialProductRevenues = [{% for m in most_selling %}{{ m.total_revenue|floatformat:2 }},{% endfor %}];
 
   let salesChart, profitChart, topProductsChart;
 
+  function toggleChartVisibility(chartContainerId, canvasId, noDataId, hasData) {
+    const container = document.getElementById(chartContainerId);
+    const canvas = document.getElementById(canvasId);
+    const noData = document.getElementById(noDataId);
+    if (hasData) {
+      canvas.style.display = 'block';
+      noData.style.display = 'none';
+    } else {
+      canvas.style.display = 'none';
+      noData.style.display = 'block';
+    }
+  }
+
+  // Table Management Functions
+  function initTable(tableId) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+
+    const theadRow = table.tHead.rows[0];
+    const newTh = document.createElement('th');
+    newTh.textContent = '#';
+    newTh.className = 'row-num-header';
+    newTh.style.width = '50px';
+    theadRow.insertBefore(newTh, theadRow.firstChild);
+
+    const tbody = table.tBodies[0];
+    Array.from(tbody.rows).forEach(row => {
+      if (row.querySelector('.no-data')) return; // skip no-data row
+      const newTd = document.createElement('td');
+      newTd.className = 'row-num';
+      row.insertBefore(newTd, row.firstChild);
+    });
+
+    // Update no-data colspan if present
+    const noDataRow = tbody.querySelector('tr td.no-data');
+    if (noDataRow) {
+      noDataRow.colSpan = theadRow.cells.length;
+    }
+
+    // Set col types
+    let colTypes = {};
+    if (tableId === 'stock-table') {
+      colTypes = {
+        product_name: 'string',
+        opening: 'number',
+        sold: 'number',
+        closing: 'number',
+        turnover: 'number'
+      };
+    } else if (tableId === 'low-stock-table') {
+      colTypes = {
+        product: 'string',
+        quantity: 'number',
+        branch: 'string'
+      };
+    } else if (tableId === 'expiry-table') {
+      colTypes = {
+        product: 'string',
+        expiry_date: 'date',
+        branch: 'string'
+      };
+    } else if (tableId === 'notifications-table') {
+      colTypes = {
+        message: 'string',
+        created: 'date'
+      };
+    }
+    window[`${tableId}_colTypes`] = colTypes;
+
+    // Init state
+    window[`${tableId}_searchTerm`] = '';
+    window[`${tableId}_rowsPerPage`] = 10;
+    window[`${tableId}_currentPage`] = 1;
+
+    // Add pagination controls
+    const content = table.closest('.collapsible-content');
+    const paginationDiv = document.createElement('div');
+    paginationDiv.className = 'pagination';
+    paginationDiv.innerHTML = `
+      <div class="flex items-center">
+        <label class="mr-2 text-sm">Rows per page:</label>
+        <select id="${tableId}-rows-select" class="border rounded px-2 py-1">
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="1000">All</option>
+        </select>
+      </div>
+      <div class="flex items-center">
+        <button id="${tableId}-prev-btn" class="mr-2 px-3 py-1 bg-gray-200 rounded disabled:opacity-50" onclick="prevPage('${tableId}')">Previous</button>
+        <span id="${tableId}-page-info" class="mx-2 text-sm"></span>
+        <button id="${tableId}-next-btn" class="px-3 py-1 bg-gray-200 rounded disabled:opacity-50" onclick="nextPage('${tableId}')">Next</button>
+      </div>
+    `;
+    content.appendChild(paginationDiv);
+
+    // Event listeners for pagination
+    document.getElementById(`${tableId}-rows-select`).addEventListener('change', (e) => changeRowsPerPage(tableId, e.target.value));
+
+    // Sort listeners
+    table.querySelectorAll('th[data-sort]').forEach(th => {
+      th.addEventListener('click', () => sortTable(tableId, th.dataset.sort));
+    });
+
+    // Initial display
+    displayPage(tableId);
+  }
+
+  function getColumnIndex(table, column) {
+    return Array.from(table.querySelectorAll('th')).findIndex(th => th.dataset.sort === column) + 1;
+  }
+
+  function displayPage(tableId) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const tbody = table.tBodies[0];
+    const allRows = Array.from(tbody.querySelectorAll('tr')).filter(row => !row.querySelector('.no-data')); // exclude no-data rows
+    const searchTerm = window[`${tableId}_searchTerm`] || '';
+    let filteredRows = allRows;
+
+    // Filter
+    if (searchTerm) {
+      filteredRows = allRows.filter(row => {
+        const productCell = row.cells[1]; // product column
+        return productCell && productCell.textContent.toLowerCase().includes(searchTerm.toLowerCase());
+      });
+    }
+
+    // Sort
+    const sortTh = table.querySelector('th[data-sort][data-order]');
+    let sortColumn = null;
+    let isAsc = false;
+    if (sortTh) {
+      sortColumn = sortTh.dataset.sort;
+      isAsc = sortTh.dataset.order === 'asc';
+      const colTypes = window[`${tableId}_colTypes`];
+      const colType = colTypes[sortColumn];
+      const colCellIndex = getColumnIndex(table, sortColumn) - 1; // 0-based for cells
+
+      filteredRows.sort((a, b) => {
+        let aVal = a.cells[colCellIndex].textContent.trim();
+        let bVal = b.cells[colCellIndex].textContent.trim();
+
+        if (colType === 'number') {
+          aVal = parseFloat(aVal) || 0;
+          bVal = parseFloat(bVal) || 0;
+          return isAsc ? aVal - bVal : bVal - aVal;
+        } else if (colType === 'date') {
+          aVal = a.dataset.expiry ? new Date(a.dataset.expiry) : new Date(aVal);
+          bVal = b.dataset.expiry ? new Date(b.dataset.expiry) : new Date(bVal);
+          return isAsc ? aVal - bVal : bVal - aVal;
+        } else {
+          aVal = aVal.toLowerCase();
+          bVal = bVal.toLowerCase();
+          return isAsc ? (aVal > bVal ? 1 : aVal < bVal ? -1 : 0) : (aVal < bVal ? 1 : aVal > bVal ? -1 : 0);
+        }
+      });
+    }
+
+    const rowsPerPage = window[`${tableId}_rowsPerPage`];
+    const totalFiltered = filteredRows.length;
+    let totalPages = Math.ceil(totalFiltered / rowsPerPage);
+    let currentPage = window[`${tableId}_currentPage`];
+    if (currentPage > totalPages) currentPage = totalPages;
+    window[`${tableId}_currentPage`] = currentPage;
+
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = Math.min(start + rowsPerPage, totalFiltered);
+
+    // Hide all data rows
+    allRows.forEach(row => row.style.display = 'none');
+
+    // Show paginated rows and number them
+    for (let i = start; i < end; i++) {
+      const row = filteredRows[i];
+      row.style.display = '';
+      row.cells[0].textContent = (i + 1);
+    }
+
+    // Handle no-data row
+    let noDataRow = tbody.querySelector('tr td.no-data');
+    if (totalFiltered === 0) {
+      if (!noDataRow) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="${table.tHead.rows[0].cells.length}" class="no-data">No data available</td>`;
+        tbody.appendChild(tr);
+      } else {
+        noDataRow.parentNode.style.display = '';
+      }
+    } else if (noDataRow) {
+      noDataRow.parentNode.style.display = 'none';
+    }
+
+    // Update pagination info and buttons
+    const pageInfo = document.getElementById(`${tableId}-page-info`);
+    if (totalFiltered === 0) {
+      pageInfo.textContent = 'No entries to show';
+    } else {
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages} | Showing ${start + 1} to ${end} of ${totalFiltered} entries`;
+    }
+
+    const prevBtn = document.getElementById(`${tableId}-prev-btn`);
+    const nextBtn = document.getElementById(`${tableId}-next-btn`);
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+  }
+
+  function sortTable(tableId, column) {
+    const th = document.querySelector(`#${tableId} th[data-sort="${column}"]`);
+    if (!th) return;
+    const isAsc = th.dataset.order === 'asc';
+    th.dataset.order = isAsc ? 'desc' : 'asc';
+    updateSortIcons(tableId, column, !isAsc);
+    window[`${tableId}_currentPage`] = 1;
+    displayPage(tableId);
+  }
+
+  function updateSortIcons(tableId, column, isAsc) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    table.querySelectorAll('th .sort-icon').forEach(icon => {
+      icon.innerHTML = '<path d="M7 10l5 5 5-5z"/>';
+    });
+    const activeIcon = table.querySelector(`th[data-sort="${column}"] .sort-icon`);
+    if (activeIcon) {
+      activeIcon.innerHTML = isAsc ? '<path d="M7 14l5-5 5 5z"/>' : '<path d="M7 10l5 5 5-5z"/>';
+    }
+  }
+
+  function changeRowsPerPage(tableId, val) {
+    window[`${tableId}_rowsPerPage`] = parseInt(val);
+    window[`${tableId}_currentPage`] = 1;
+    displayPage(tableId);
+  }
+
+  function prevPage(tableId) {
+    if (window[`${tableId}_currentPage`] > 1) {
+      window[`${tableId}_currentPage`]--;
+      displayPage(tableId);
+    }
+  }
+
+  function nextPage(tableId) {
+    const totalPages = Math.ceil(getFilteredRowCount(tableId) / window[`${tableId}_rowsPerPage`]);
+    if (window[`${tableId}_currentPage`] < totalPages) {
+      window[`${tableId}_currentPage`]++;
+      displayPage(tableId);
+    }
+  }
+
+  function getFilteredRowCount(tableId) {
+    // Approximate, call displayPage to update
+    displayPage(tableId); // To ensure updated
+    const table = document.getElementById(tableId);
+    return Array.from(table.tBodies[0].querySelectorAll('tr')).filter(row => row.style.display !== 'none' && !row.querySelector('.no-data')).length;
+  }
+
+  function filterTable(tableId, searchTerm) {
+    window[`${tableId}_searchTerm`] = searchTerm;
+    window[`${tableId}_currentPage`] = 1;
+    displayPage(tableId);
+  }
+
+  // Chart initialization
   document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Charts with initial data and enhanced options
+    // Init tables
+    ['stock-table', 'low-stock-table', 'expiry-table', 'notifications-table'].forEach(initTable);
+
+    const hasInitialData = initialDates.length > 0;
+    toggleChartVisibility('sales-chart-container', 'salesChart', 'sales-no-data', hasInitialData);
+    toggleChartVisibility('profit-chart-container', 'profitChart', 'profit-no-data', hasInitialData);
+    toggleChartVisibility('top-products-chart-container', 'topProductsChart', 'top-products-no-data', initialProductNames.length > 0);
+
+    if (!hasInitialData) return;
+
+    // Initialize Charts
     const salesCtx = document.getElementById('salesChart').getContext('2d');
     salesChart = new Chart(salesCtx, {
       type: 'line',
@@ -409,7 +710,8 @@
             data: initialSalesData,
             borderColor: 'rgb(59, 130, 246)',
             backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            tension: 0.1
+            tension: 0.1,
+            fill: true
           },
           {
             label: 'Trend Line',
@@ -417,41 +719,25 @@
             borderColor: 'rgb(59, 130, 246)',
             borderDash: [5, 5],
             fill: false,
-            tension: 0.1
+            tension: 0.1,
+            pointRadius: 0
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          intersect: false,
-          mode: 'index'
-        },
-        scales: {
-          y: {
-            beginAtZero: true
-          }
-        },
+        animation: { duration: 0 },
+        interaction: { intersect: false, mode: 'index' },
+        scales: { y: { beginAtZero: true } },
         plugins: {
           zoom: {
-            pan: {
-              enabled: true,
-              mode: 'xy'
-            },
-            zoom: {
-              wheel: {
-                enabled: true
-              },
-              pinch: {
-                enabled: true
-              },
-              mode: 'xy'
-            }
-          }
+            pan: { enabled: true, mode: 'xy' },
+            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' }
+          },
+          legend: { display: true }
         }
-      },
-      plugins: [ChartZoom]
+      }
     });
 
     const profitCtx = document.getElementById('profitChart').getContext('2d');
@@ -465,7 +751,8 @@
             data: initialProfitsData,
             borderColor: 'rgb(34, 197, 94)',
             backgroundColor: 'rgba(34, 197, 94, 0.1)',
-            tension: 0.1
+            tension: 0.1,
+            fill: true
           },
           {
             label: 'Trend Line',
@@ -473,41 +760,25 @@
             borderColor: 'rgb(34, 197, 94)',
             borderDash: [5, 5],
             fill: false,
-            tension: 0.1
+            tension: 0.1,
+            pointRadius: 0
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          intersect: false,
-          mode: 'index'
-        },
-        scales: {
-          y: {
-            beginAtZero: false
-          }
-        },
+        animation: { duration: 0 },
+        interaction: { intersect: false, mode: 'index' },
+        scales: { y: { beginAtZero: false } },
         plugins: {
           zoom: {
-            pan: {
-              enabled: true,
-              mode: 'xy'
-            },
-            zoom: {
-              wheel: {
-                enabled: true
-              },
-              pinch: {
-                enabled: true
-              },
-              mode: 'xy'
-            }
-          }
+            pan: { enabled: true, mode: 'xy' },
+            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' }
+          },
+          legend: { display: true }
         }
-      },
-      plugins: [ChartZoom]
+      }
     });
 
     const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
@@ -518,18 +789,8 @@
         datasets: [{
           data: initialProductRevenues,
           backgroundColor: [
-            'rgb(255, 99, 132)',
-            'rgb(54, 162, 235)',
-            'rgb(255, 205, 86)',
-            'rgb(75, 192, 192)',
-            'rgb(153, 102, 255)'
-          ],
-          borderColor: [
-            'rgb(255, 99, 132)',
-            'rgb(54, 162, 235)',
-            'rgb(255, 205, 86)',
-            'rgb(75, 192, 192)',
-            'rgb(153, 102, 255)'
+            'rgb(255, 99, 132)', 'rgb(54, 162, 235)', 'rgb(255, 205, 86)', 'rgb(75, 192, 192)',
+            'rgb(153, 102, 255)', 'rgb(255, 159, 64)', 'rgb(199, 199, 199)', 'rgb(83, 102, 255)'
           ],
           borderWidth: 1
         }]
@@ -537,33 +798,30 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          intersect: false
-        },
-        plugins: {
-          legend: {
-            position: 'bottom'
-          }
-        },
+        animation: { duration: 0 },
+        interaction: { intersect: false },
+        plugins: { legend: { position: 'bottom' } },
         onClick: (e, elements) => {
           if (elements.length > 0) {
             const index = elements[0].index;
             const productName = topProductsChart.data.labels[index];
-            // Filter stock table to show only rows matching the clicked product
             const stockRows = document.querySelectorAll('#stock-table tbody tr');
             let visibleCount = 0;
             stockRows.forEach(row => {
-              const cellText = row.cells[0].textContent.toLowerCase();
-              if (cellText.includes(productName.toLowerCase())) {
-                row.style.display = '';
-                visibleCount++;
-              } else {
-                row.style.display = 'none';
+              if (row.style.display !== 'none') {
+                const cellText = row.cells[1].textContent.toLowerCase();
+                if (cellText.includes(productName.toLowerCase())) {
+                  row.style.display = '';
+                  visibleCount++;
+                } else {
+                  row.style.display = 'none';
+                }
               }
             });
             if (visibleCount === 0) {
               alert(`No stock data found for "${productName}".`);
             }
+            displayPage('stock-table');
           }
         }
       }
@@ -572,150 +830,48 @@
     // Real-time update function
     function updateCharts() {
       fetch(window.location.href, {
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest'
-        }
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
       })
       .then(response => response.json())
       .then(data => {
-        // Update Sales Chart
         const newDates = data.daily_data.map(d => d.date);
-        salesChart.data.labels = newDates;
-        salesChart.data.datasets[0].data = data.daily_data.map(d => d.sales);
-        salesChart.data.datasets[1].data = data.trend_sales;
-        salesChart.update('none'); // Silent update for smooth animation
+        const hasNewData = newDates.length > 0;
 
-        // Update Profit Chart
-        profitChart.data.labels = newDates;
-        profitChart.data.datasets[0].data = data.daily_data.map(d => d.profit);
-        profitChart.data.datasets[1].data = data.trend_profits;
-        profitChart.update('none');
-
-        // Update Top Products Pie Chart
-        topProductsChart.data.labels = data.most_selling.map(p => p.name);
-        topProductsChart.data.datasets[0].data = data.most_selling.map(p => p.revenue);
-        topProductsChart.update('none');
-      })
-      .catch(error => {
-        console.error('Error updating charts:', error);
-      });
-    }
-
-    // Poll for updates every 30 seconds
-    setInterval(updateCharts, 30000);
-
-    // Utility: Debounce function for search inputs
-    const debounce = (func, wait) => {
-      let timeout;
-      return (...args) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func(...args), wait);
-      };
-    };
-
-    // Sorting
-    function sortTable(tableId, column, type) {
-      const table = document.getElementById(tableId);
-      if (!table) return;
-      const tbody = table.querySelector('tbody');
-      const rows = Array.from(tbody.querySelectorAll('tr'));
-      const isAsc = table.querySelector(`th[data-sort="${column}"]`)?.dataset.order !== 'asc';
-
-      rows.sort((a, b) => {
-        let aVal = a.querySelector(`td:nth-child(${getColumnIndex(table, column)})`).textContent;
-        let bVal = b.querySelector(`td:nth-child(${getColumnIndex(table, column)})`).textContent;
-
-        if (type === 'number') {
-          aVal = parseFloat(aVal) || 0;
-          bVal = parseFloat(bVal) || 0;
-        } else if (type === 'date') {
-          aVal = a.dataset.expiry ? new Date(a.dataset.expiry) : new Date(aVal.split('/').reverse().join('-'));
-          bVal = b.dataset.expiry ? new Date(b.dataset.expiry) : new Date(bVal.split('/').reverse().join('-'));
-        } else {
-          aVal = aVal.toLowerCase();
-          bVal = bVal.toLowerCase();
+        toggleChartVisibility('sales-chart-container', 'salesChart', 'sales-no-data', hasNewData);
+        if (hasNewData && salesChart) {
+          salesChart.data.labels = newDates;
+          salesChart.data.datasets[0].data = data.daily_data.map(d => parseFloat(d.sales));
+          salesChart.data.datasets[1].data = data.trend_sales;
+          salesChart.update('none');
         }
 
-        return isAsc ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
-      });
+        toggleChartVisibility('profit-chart-container', 'profitChart', 'profit-no-data', hasNewData);
+        if (hasNewData && profitChart) {
+          profitChart.data.labels = newDates;
+          profitChart.data.datasets[0].data = data.daily_data.map(d => parseFloat(d.profit));
+          profitChart.data.datasets[1].data = data.trend_profits;
+          profitChart.update('none');
+        }
 
-      tbody.innerHTML = '';
-      rows.forEach(row => tbody.appendChild(row));
-      table.querySelector(`th[data-sort="${column}"]`).dataset.order = isAsc ? 'asc' : 'desc';
-      updateSortIcons(tableId, column, isAsc);
+        const hasProductsData = data.most_selling.length > 0;
+        toggleChartVisibility('top-products-chart-container', 'topProductsChart', 'top-products-no-data', hasProductsData);
+        if (hasProductsData && topProductsChart) {
+          topProductsChart.data.labels = data.most_selling.map(p => p.name);
+          topProductsChart.data.datasets[0].data = data.most_selling.map(p => parseFloat(p.revenue));
+          topProductsChart.update('none');
+        }
+      })
+      .catch(error => console.error('Error updating charts:', error));
     }
 
-    function getColumnIndex(table, column) {
-      return Array.from(table.querySelectorAll('th')).findIndex(th => th.dataset.sort === column) + 1;
-    }
+    setInterval(updateCharts, 30000);
 
-    function updateSortIcons(tableId, column, isAsc) {
-      const table = document.getElementById(tableId);
-      if (!table) return;
-      table.querySelectorAll('th .sort-icon').forEach(icon => {
-        icon.innerHTML = '<path d="M7 10l5 5 5-5z"/>';
-      });
-      const activeIcon = table.querySelector(`th[data-sort="${column}"] .sort-icon`);
-      if (activeIcon) {
-        activeIcon.innerHTML = isAsc ? '<path d="M7 14l5-5 5 5z"/>' : '<path d="M7 10l5 5 5-5z"/>';
-      }
-    }
-
-    // Filtering
-    const filterTable = debounce((tableId, searchTerm, columnIndex = 1) => {
-      const table = document.getElementById(tableId);
-      if (!table) return;
-      const rows = table.querySelectorAll('tbody tr');
-      searchTerm = searchTerm.toLowerCase();
-      rows.forEach(row => {
-        const text = row.querySelector(`td:nth-child(${columnIndex})`).textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
-      });
-    }, 300);
-
-    // Alert Filtering
-    function applyFilters() {
-      const alertType = document.getElementById('alert-type').value;
-      document.getElementById('low-stock-container').style.display = alertType === '' || alertType === 'low_stock' ? '' : 'none';
-      document.getElementById('expiry-container').style.display = alertType === '' || alertType === 'expiry' ? '' : 'none';
-
-      const notificationsTable = document.getElementById('notifications-table');
-      if (notificationsTable) {
-        notificationsTable.querySelectorAll('tbody tr').forEach(row => {
-          row.style.display = alertType && row.dataset.type !== alertType ? 'none' : '';
-        });
-      }
-    }
-
-    // Reset Filters
-    function resetFilters() {
-      document.getElementById('date-range').value = 'today';
-      document.getElementById('start-date').value = '';
-      document.getElementById('end-date').value = '';
-      document.getElementById('branch').value = '';
-      document.getElementById('alert-type').value = '';
-      document.getElementById('custom-date').classList.add('hidden');
-      document.getElementById('custom-date-end').classList.add('hidden');
-      document.getElementById('filter-form').submit();
-    }
-
-    // Collapsible Sections
-    document.querySelectorAll('.collapsible-header').forEach(header => {
-      header.addEventListener('click', () => {
-        const content = header.nextElementSibling;
-        const icon = header.querySelector('.toggle-icon');
-        content.classList.toggle('active');
-        icon.innerHTML = content.classList.contains('active') ?
-          '<path d="M7 10l5 5 5-5z"/>' :
-          '<path d="M7 14l5-5 5 5z"/>';
-      });
-    });
-
-    // Event Listeners
+    // Other event listeners
     document.getElementById('stock-search')?.addEventListener('input', e => filterTable('stock-table', e.target.value));
     document.getElementById('low-stock-search')?.addEventListener('input', e => filterTable('low-stock-table', e.target.value));
     document.getElementById('expiry-search')?.addEventListener('input', e => filterTable('expiry-table', e.target.value));
     document.getElementById('notifications-search')?.addEventListener('input', e => filterTable('notifications-table', e.target.value));
+
     document.getElementById('alert-type').addEventListener('change', applyFilters);
     document.getElementById('branch').addEventListener('change', () => document.getElementById('filter-form').submit());
     document.getElementById('date-range').addEventListener('change', function() {
@@ -730,20 +886,44 @@
       }
     });
 
-    document.querySelectorAll('#stock-table th[data-sort]').forEach(th => {
-      th.addEventListener('click', () => sortTable('stock-table', th.dataset.sort, th.dataset.sort === 'product_name' ? 'string' : 'number'));
-    });
-    document.querySelectorAll('#low-stock-table th[data-sort]').forEach(th => {
-      th.addEventListener('click', () => sortTable('low-stock-table', th.dataset.sort, th.dataset.sort === 'quantity' ? 'number' : 'string'));
-    });
-    document.querySelectorAll('#expiry-table th[data-sort]').forEach(th => {
-      th.addEventListener('click', () => sortTable('expiry-table', th.dataset.sort, th.dataset.sort === 'expiry_date' ? 'date' : 'string'));
-    });
-    document.querySelectorAll('#notifications-table th[data-sort]').forEach(th => {
-      th.addEventListener('click', () => sortTable('notifications-table', th.dataset.sort, th.dataset.sort === 'created' ? 'date' : 'string'));
+    // Collapsible
+    document.querySelectorAll('.collapsible-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const content = header.nextElementSibling;
+        const icon = header.querySelector('.toggle-icon');
+        content.classList.toggle('active');
+        icon.innerHTML = content.classList.contains('active') ?
+          '<path d="M7 10l5 5 5-5z"/>' :
+          '<path d="M7 14l5-5 5 5z"/>';
+      });
     });
 
     window.addEventListener('load', applyFilters);
   });
+
+  function applyFilters() {
+    const alertType = document.getElementById('alert-type').value;
+    document.getElementById('low-stock-container').style.display = alertType === '' || alertType === 'low_stock' ? '' : 'none';
+    document.getElementById('expiry-container').style.display = alertType === '' || alertType === 'expiry' ? '' : 'none';
+
+    const notificationsTable = document.getElementById('notifications-table');
+    if (notificationsTable) {
+      notificationsTable.querySelectorAll('tbody tr').forEach(row => {
+        row.style.display = alertType && row.dataset.type !== alertType ? 'none' : '';
+      });
+      displayPage('notifications-table');
+    }
+  }
+
+  function resetFilters() {
+    document.getElementById('date-range').value = 'today';
+    document.getElementById('start-date').value = '';
+    document.getElementById('end-date').value = '';
+    document.getElementById('branch').value = '';
+    document.getElementById('alert-type').value = '';
+    document.getElementById('custom-date').classList.add('hidden');
+    document.getElementById('custom-date-end').classList.add('hidden');
+    document.getElementById('filter-form').submit();
+  }
 </script>
 {% endblock %}
