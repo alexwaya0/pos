@@ -34,6 +34,30 @@
       min-height: 100vh; /* Ensure full viewport height */
     }
 
+    /* Seamless Page Transition Styles */
+    .page-wrapper {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page-content {
+      animation: fadeSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    @keyframes fadeSlideIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Preload animation trigger */
+    body.loaded .page-content {
+      animation-play-state: running;
+    }
+
     /* --------------------------------- */
     /* --- ADVANCED SIDEBAR STYLING --- */
     /* --------------------------------- */
@@ -450,7 +474,7 @@
 <body class="min-h-screen">
   <div id="mobile-backdrop" class="fixed inset-0 z-30 hidden lg:hidden backdrop"></div>
 
-  <div class="flex min-h-screen">
+  <div class="flex min-h-screen page-wrapper">
     {# SIDEBAR - transform-based so we can toggle on mobile #}
     {% if request.user.is_authenticated %}
     <aside id="sidebar"
@@ -589,7 +613,7 @@
               {% endfor %}
             {% endif %}
           </div>
-          <div>
+          <div class="page-content">
             {% block content %}{% endblock %}
           </div>
         </div>
@@ -603,6 +627,11 @@
   </audio>
 
   <script>
+    // Trigger seamless load animation
+    document.addEventListener('DOMContentLoaded', () => {
+      document.body.classList.add('loaded');
+    });
+
     // Render lucide icons
     if (typeof lucide !== 'undefined' && lucide.createIcons) {
       lucide.createIcons();
