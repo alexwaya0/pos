@@ -131,6 +131,11 @@
   .turnover-medium {
     color: #f59e0b !important; /* Amber for medium turnover (1-2) */
   }
+  .chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+  }
   @media (max-width: 768px) {
     .filter-container {
       grid-template-columns: 1fr;
@@ -141,6 +146,9 @@
     }
     th, td {
       padding: 8px 4px;
+    }
+    .chart-container {
+      height: 250px;
     }
   }
 </style>
@@ -207,6 +215,33 @@
     <div class="card">
       <h3 class="text-gold">Period</h3>
       <p class="text-lg text-teal">{{ start_date|date:"M d, Y" }} to {{ end_date|date:"M d, Y" }}</p>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Sales Trend Chart -->
+    <div class="card">
+      <h3 class="text-gold">Sales Trend</h3>
+      <div class="chart-container">
+        <canvas id="salesChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Profit Trend Chart -->
+    <div class="card">
+      <h3 class="text-gold">Profit Trend</h3>
+      <div class="chart-container">
+        <canvas id="profitChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Top Selling Products Pie Chart -->
+    <div class="card">
+      <h3 class="text-gold">Top Selling Products</h3>
+      <div class="chart-container">
+        <canvas id="topProductsChart"></canvas>
+      </div>
     </div>
   </div>
 
@@ -347,8 +382,122 @@
   {% endif %}
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+  // Chart Data from Django Context
+  const dates = [{% for d in daily_data %}'{{ d.date|date:"M d" }}',{% endfor %}];
+  const salesData = [{% for d in daily_data %}{{ d.sales }},{% endfor %}];
+  const profitsData = [{% for d in daily_data %}{{ d.profit }},{% endfor %}];
+  const trendSales = {{ trend_sales|safe }};
+  const trendProfits = {{ trend_profits|safe }};
+  const productNames = [{% for m in most_selling %}'{{ m.product__name }}',{% endfor %}];
+  const productRevenues = [{% for m in most_selling %}{{ m.total_revenue }},{% endfor %}];
+
   document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Charts
+    const salesCtx = document.getElementById('salesChart').getContext('2d');
+    new Chart(salesCtx, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [
+          {
+            label: 'Daily Sales (KES)',
+            data: salesData,
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.1
+          },
+          {
+            label: 'Trend Line',
+            data: trendSales,
+            borderColor: 'rgb(59, 130, 246)',
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+
+    const profitCtx = document.getElementById('profitChart').getContext('2d');
+    new Chart(profitCtx, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [
+          {
+            label: 'Daily Profit (KES)',
+            data: profitsData,
+            borderColor: 'rgb(34, 197, 94)',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            tension: 0.1
+          },
+          {
+            label: 'Trend Line',
+            data: trendProfits,
+            borderColor: 'rgb(34, 197, 94)',
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: false
+          }
+        }
+      }
+    });
+
+    const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
+    new Chart(topProductsCtx, {
+      type: 'pie',
+      data: {
+        labels: productNames,
+        datasets: [{
+          data: productRevenues,
+          backgroundColor: [
+            'rgb(255, 99, 132)',
+            'rgb(54, 162, 235)',
+            'rgb(255, 205, 86)',
+            'rgb(75, 192, 192)',
+            'rgb(153, 102, 255)'
+          ],
+          borderColor: [
+            'rgb(255, 99, 132)',
+            'rgb(54, 162, 235)',
+            'rgb(255, 205, 86)',
+            'rgb(75, 192, 192)',
+            'rgb(153, 102, 255)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
+        }
+      }
+    });
+
     // Utility: Debounce function for search inputs
     const debounce = (func, wait) => {
       let timeout;
