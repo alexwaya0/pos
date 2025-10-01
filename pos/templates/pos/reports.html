@@ -112,6 +112,12 @@
     color: #666;
     padding: 20px;
   }
+  .profit-positive {
+    color: #10b981 !important; /* Green for positive profit */
+  }
+  .profit-negative {
+    color: #ef4444 !important; /* Red for negative profit/loss */
+  }
 </style>
 
 <div class="container mx-auto space-y-8">
@@ -167,7 +173,7 @@
     </div>
     <div class="card">
       <h3 class="text-gold">Total Profit</h3>
-      <p class="text-2xl font-bold text-teal">KES {{ total_profit|floatformat:2|default:"0.00" }}</p>
+      <p class="text-2xl font-bold {% if total_profit < 0 %}profit-negative{% else %}profit-positive{% endif %}">KES {{ total_profit|floatformat:2|default:"0.00" }}</p>
     </div>
     <div class="card">
       <h3 class="text-gold">Inventory Turnover</h3>
