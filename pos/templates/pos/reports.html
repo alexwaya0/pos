@@ -1,1130 +1,657 @@
-{% extends "pos/base.html" %}
+{% extends 'pos/base.html' %}
+{% load humanize %}
 {% block title %}Reports{% endblock %}
 {% block page_title %}Reports{% endblock %}
 {% block content %}
 <style>
+  .reports-container {
+    animation: fadeSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  @keyframes fadeSlideIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
   .card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: none;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    padding: 24px;
-    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+    padding: 20px;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--gold), var(--darkgreen));
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
   .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 102, 102, 0.2);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 40px rgba(6, 68, 32, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  .card:hover::before { opacity: 1; }
+  /* Card-specific colors */
+  .card-sales { 
+    background: linear-gradient(145deg, #FFF3E0 0%, #FFE0B2 50%, rgba(255, 224, 178, 0.8) 100%); 
+    border: 1px solid rgba(251, 146, 60, 0.1);
+  }
+  .card-profit { 
+    background: linear-gradient(145deg, #E6F7F2 0%, #CCEFE7 50%, rgba(204, 239, 231, 0.8) 100%); 
+    color: #065f46; 
+    border: 1px solid rgba(6, 95, 70, 0.1);
+  }
+  .card-turnover { 
+    background: linear-gradient(145deg, #F0F9FF 0%, #E0F2FE 50%, rgba(224, 242, 254, 0.8) 100%); 
+    border: 1px solid rgba(59, 130, 246, 0.1);
+  }
+  .filter-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+    border: 1px solid rgba(212, 175, 55, 0.1);
+    margin-bottom: 2rem;
+  }
+  .metric-icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+  }
+  .card:hover .metric-icon {
+    background: rgba(255, 255, 255, 0.9);
+    transform: scale(1.05);
+  }
+  .metric-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    margin: 0 0 4px 0;
+    line-height: 1.2;
+  }
+  .metric-value {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.1;
   }
   .table-container {
     background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 24px;
     overflow-x: auto;
+    margin-bottom: 24px;
   }
   table {
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
+    border-collapse: collapse;
     min-width: 600px;
   }
   th, td {
-    padding: 12px 16px;
+    padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #f1f5f9;
+    white-space: nowrap;
   }
   th {
-    background: linear-gradient(135deg, #006666 0%, #1F7A5F 100%);
+    background-color: var(--darkgreen);
     color: #ffffff;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
     position: sticky;
     top: 0;
     z-index: 10;
   }
-  th:hover {
-    background: linear-gradient(135deg, #1F7A5F 0%, #006666 100%);
-    transform: translateY(-1px);
-  }
-  tr {
-    transition: background-color 0.2s ease;
-  }
-  tr:nth-child(even) {
+  tr:hover {
     background-color: #f8fafc;
   }
-  tr:hover {
-    background-color: #e0f2fe;
-    transform: scale(1.01);
-  }
-  .filter-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-  .filter-container select, .filter-container input, .filter-container button {
-    border: 1px solid #006666;
+  .refresh-btn {
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: var(--darkgreen);
+    padding: 8px 16px;
     border-radius: 8px;
-    padding: 8px;
-    transition: border-color 0.3s ease;
-  }
-  .filter-container select:focus, .filter-container input:focus, .filter-container button:focus {
-    border-color: #D4A017;
-    outline: none;
-    box-shadow: 0 0 5px rgba(212, 160, 23, 0.5);
-  }
-  .filter-container button {
-    background-color: #006666;
-    color: #ffffff;
-    cursor: pointer;
-  }
-  .filter-container button:hover {
-    background-color: #1F7A5F;
-  }
-  .filter-container button.reset {
-    background-color: #D4A017;
-  }
-  .filter-container button.reset:hover {
-    background-color: #b58900;
-  }
-  h3 {
-    font-size: 1.25rem;
     font-weight: 600;
-    color: #006666;
-  }
-  .text-teal { color: #006666 !important; }
-  .text-orange { color: #F97316 !important; }
-  .text-gold { color: #D4A017 !important; }
-  .sort-icon {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    margin-left: 4px;
-    vertical-align: middle;
-    transition: transform 0.2s ease;
-  }
-  th:hover .sort-icon {
-    transform: rotate(180deg);
-  }
-  .collapsible-header {
+    transition: all 0.3s ease;
+    border: none;
     cursor: pointer;
-    display: flex;
-    justify-content: space-between;
+    display: inline-flex;
     align-items: center;
-    padding: 8px 0;
+    gap: 6px;
+    font-size: 0.875rem;
   }
-  .collapsible-content {
-    display: none;
+  .refresh-btn:hover {
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
   }
-  .collapsible-content.active {
-    display: block;
+  .filter-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
   }
-  .search-input {
-    width: 100%;
-    max-width: 300px;
-    margin-bottom: 1rem;
+  .filter-form select, .filter-form input {
+    padding: 8px 12px;
     border: 1px solid #d1d5db;
     border-radius: 8px;
-    padding: 8px 12px;
-    transition: border-color 0.2s ease;
+    background: white;
+    font-size: 0.875rem;
   }
-  .search-input:focus {
-    border-color: #006666;
-    outline: none;
+  .filter-form button {
+    background: var(--gold);
+    color: var(--darkgreen);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .filter-form button:hover {
+    background: var(--gold-dark);
+    transform: translateY(-1px);
+  }
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--darkgreen);
+    margin: 0 0 16px 0;
   }
   .no-data {
     text-align: center;
-    color: #666;
-    padding: 20px;
+    color: var(--muted);
+    padding: 40px;
     font-style: italic;
   }
-  .profit-positive {
-    color: #10b981 !important; /* Green for positive profit */
-  }
-  .profit-negative {
-    color: #ef4444 !important; /* Red for negative profit/loss */
-  }
-  .currency-kes {
-    font-weight: bold;
-    font-size: 1.1em;
-  }
-  .turnover-high {
-    color: #10b981 !important; /* Green for high turnover (>2) */
-  }
-  .turnover-low {
-    color: #ef4444 !important; /* Red for low turnover (<1) */
-  }
-  .turnover-medium {
-    color: #f59e0b !important; /* Amber for medium turnover (1-2) */
-  }
+  /* Chart Styles - Mirrored from dashboard */
   .chart-container {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 24px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(10px);
+  }
+  .chart-wrapper {
     position: relative;
     height: 300px;
-    width: 100%;
+    margin-top: 16px;
   }
-  .chart-no-data {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    color: #666;
-  }
-  .pagination {
+  .alert-tabs {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #e2e8f0;
-    background: #f8fafc;
-    border-radius: 0 0 12px 12px;
+    gap: 8px;
+    margin-bottom: 16px;
   }
-  .pagination select, .pagination button {
+  .alert-tab {
+    padding: 8px 16px;
     border: 1px solid #d1d5db;
-    border-radius: 6px;
-    padding: 4px 8px;
+    border-radius: 8px;
     background: white;
     cursor: pointer;
     transition: all 0.2s ease;
   }
-  .pagination button:hover:not(:disabled) {
-    background: #006666;
-    color: white;
+  .alert-tab.active {
+    background: var(--gold);
+    color: var(--darkgreen);
+    border-color: var(--gold);
   }
-  .pagination button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  .tab-content {
+    display: block;
   }
-  .row-num {
-    font-weight: bold;
-    text-align: center;
-    width: 50px;
-    background: #f0f9ff;
-    color: #006666;
-  }
-  .row-num-header {
-    background: linear-gradient(135deg, #006666 0%, #1F7A5F 100%);
-    color: white;
-    font-weight: 600;
-    width: 50px;
-  }
+  /* Responsive table adjustments */
   @media (max-width: 768px) {
-    .filter-container {
-      grid-template-columns: 1fr;
-      gap: 0.5rem;
+    .table-container {
+      padding: 16px;
     }
     table {
-      font-size: 0.875rem;
+      min-width: 500px;
     }
     th, td {
       padding: 8px 4px;
+      font-size: 0.875rem;
     }
-    .chart-container {
+    .card {
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .metric-icon {
+      width: 40px;
+      height: 40px;
+      margin-right: 8px;
+    }
+    .metric-value {
+      font-size: 1.5rem;
+    }
+    .metric-title {
+      font-size: 0.8rem;
+    }
+    .chart-wrapper {
       height: 250px;
     }
-    .pagination {
-      flex-direction: column;
-      gap: 0.5rem;
+    .filter-form {
+      grid-template-columns: 1fr;
+    }
+    /* Stacked table for very small screens */
+    @media (max-width: 480px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+      }
+      tr {
+        border: 1px solid #ccc;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 8px;
+      }
+      td {
+        border: none;
+        position: relative;
+        padding-left: 50%;
+        white-space: normal;
+        text-align: right;
+      }
+      td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 6px;
+        width: 45%;
+        padding-right: 10px;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: bold;
+        color: var(--darkgreen);
+      }
     }
   }
 </style>
 
-<div class="container mx-auto space-y-8">
-  <!-- Filters -->
-  <form id="filter-form" action="{% url 'pos:reports' %}" method="get">
-    <div class="card filter-container">
+<div class="reports-container">
+  <!-- Filters Card -->
+  <div class="card filter-card">
+    <form method="GET" class="filter-form">
       <div>
-        <label for="date-range" class="block text-sm font-medium text-gray-700">Date Range</label>
-        <select id="date-range" name="date-range" class="w-full">
-          <option value="today" {% if request.GET.date_range == 'today' %}selected{% endif %}>Today</option>
-          <option value="week" {% if request.GET.date_range == 'week' %}selected{% endif %}>This Week</option>
-          <option value="month" {% if request.GET.date_range == 'month' %}selected{% endif %}>This Month</option>
-          <option value="custom" {% if request.GET.date_range == 'custom' %}selected{% endif %}>Custom</option>
+        <label for="date-range">Date Range:</label>
+        <select name="date-range" id="date-range">
+          <option value="today" {% if date_range == 'today' %}selected{% endif %}>Today</option>
+          <option value="week" {% if date_range == 'week' or not date_range %}selected{% endif %}>Last 7 Days</option>
+          <option value="month" {% if date_range == 'month' %}selected{% endif %}>Last Month</option>
+          <option value="custom" {% if date_range == 'custom' %}selected{% endif %}>Custom</option>
         </select>
       </div>
-      <div class="{% if request.GET.date_range != 'custom' %}hidden{% endif %}" id="custom-date">
-        <label for="start-date" class="block text-sm font-medium text-gray-700">Start Date</label>
-        <input type="date" id="start-date" name="start_date" value="{{ start_date }}" class="w-full" />
-      </div>
-      <div class="{% if request.GET.date_range != 'custom' %}hidden{% endif %}" id="custom-date-end">
-        <label for="end-date" class="block text-sm font-medium text-gray-700">End Date</label>
-        <input type="date" id="end-date" name="end_date" value="{{ end_date }}" class="w-full" />
+      <div style="display: none;">
+        <input type="hidden" name="branch" value="{% if branches %}{{ branches.0.id }}{% endif %}">
       </div>
       <div>
-        <label for="branch" class="block text-sm font-medium text-gray-700">Branch</label>
-        <select id="branch" name="branch" class="w-full">
-          <option value="" {% if not request.GET.branch %}selected{% endif %}>All Branches</option>
-          {% for branch in branches %}
-            <option value="{{ branch.id }}" {% if request.GET.branch == branch.id|stringformat:"s" %}selected{% endif %}>{{ branch.name }}</option>
-          {% endfor %}
+        <label for="alert_type">Alerts:</label>
+        <select name="alert_type" id="alert_type">
+          <option value="" {% if alert_type == '' %}selected{% endif %}>All</option>
+          <option value="low_stock" {% if alert_type == 'low_stock' %}selected{% endif %}>Low Stock</option>
+          <option value="expiry" {% if alert_type == 'expiry' %}selected{% endif %}>Near Expiry</option>
         </select>
       </div>
       <div>
-        <label for="alert-type" class="block text-sm font-medium text-gray-700">Alert Type</label>
-        <select id="alert-type" name="alert_type" class="w-full">
-          <option value="" {% if not request.GET.alert_type %}selected{% endif %}>All Alerts</option>
-          <option value="low_stock" {% if request.GET.alert_type == 'low_stock' %}selected{% endif %}>Low Stock</option>
-          <option value="expiry" {% if request.GET.alert_type == 'expiry' %}selected{% endif %}>Near Expiry</option>
-        </select>
+        <label for="start_date">Start Date:</label>
+        <input type="date" name="start_date" id="start_date" value="{% if start_date %}{{ start_date|date:'Y-m-d' }}{% endif %}">
       </div>
-      <div class="flex items-end gap-2">
-        <button type="button" class="btn-primary" onclick="submitFilters()">Apply Filters</button>
-        <button type="button" class="reset" onclick="resetFilters()">Reset Filters</button>
+      <div>
+        <label for="end_date">End Date:</label>
+        <input type="date" name="end_date" id="end_date" value="{% if end_date %}{{ end_date|date:'Y-m-d' }}{% endif %}">
       </div>
-    </div>
-  </form>
+      <button type="submit">Apply Filters</button>
+    </form>
+  </div>
 
-  <!-- Summary Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <div class="card">
-      <h3 class="text-gold">Total Sales</h3>
-      <p class="text-2xl font-bold text-teal currency-kes">KES {{ total_sales|floatformat:2|default:"0.00" }}</p>
+  <!-- Summary Cards Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+    <!-- Total Sales Card -->
+    <div class="card card-sales">
+      <div class="flex items-center mb-4">
+        <div class="metric-icon">
+          <i data-lucide="trending-up" class="w-5 h-5 text-orange-600"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="metric-title">Total Sales</p>
+          <p class="metric-value text-orange-600">KSh {{ total_sales|floatformat:0|intcomma }}</p>
+        </div>
+      </div>
     </div>
-    <div class="card">
-      <h3 class="text-gold">Total Profit</h3>
-      <p class="{% if total_profit < 0 %}profit-negative{% else %}profit-positive{% endif %} text-2xl font-bold currency-kes">KES {{ total_profit|floatformat:2|default:"0.00" }}</p>
+
+    <!-- Total Profit Card -->
+    <div class="card card-profit">
+      <div class="flex items-center mb-4">
+        <div class="metric-icon">
+          <i data-lucide="dollar-sign" class="w-5 h-5 text-green-600"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="metric-title">Total Profit</p>
+          <p class="metric-value text-green-600">KSh {{ total_profit|floatformat:0|intcomma }}</p>
+        </div>
+      </div>
     </div>
-    <div class="card">
-      <h3 class="text-gold">Inventory Turnover</h3>
-      <p class="text-2xl font-bold text-teal">{{ inventory_turnover|default:"0.00" }}</p>
-    </div>
-    <div class="card">
-      <h3 class="text-gold">Period</h3>
-      <p class="text-lg text-teal">{{ start_date|date:"M d, Y" }} to {{ end_date|date:"M d, Y" }}</p>
+
+    <!-- Inventory Turnover Card -->
+    <div class="card card-turnover">
+      <div class="flex items-center mb-4">
+        <div class="metric-icon">
+          <i data-lucide="refresh-cw" class="w-5 h-5 text-blue-600"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="metric-title">Inventory Turnover</p>
+          <p class="metric-value text-blue-600">{{ inventory_turnover|floatformat:2 }}</p>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- Charts Section -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-    <!-- Sales Trend Chart -->
-    <div class="card">
-      <h3 class="text-gold">Sales Trend</h3>
-      <div class="chart-container" id="sales-chart-container">
-        <canvas id="salesChart"></canvas>
-        <div id="sales-no-data" class="chart-no-data" style="display: none;">No data available for the selected filters</div>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Daily Sales Bar Chart -->
+    <div class="chart-container">
+      <h3>Daily Sales</h3>
+      <div class="chart-wrapper">
+        <canvas id="dailySalesBar"></canvas>
       </div>
     </div>
 
-    <!-- Profit Trend Chart -->
-    <div class="card">
-      <h3 class="text-gold">Profit Trend</h3>
-      <div class="chart-container" id="profit-chart-container">
-        <canvas id="profitChart"></canvas>
-        <div id="profit-no-data" class="chart-no-data" style="display: none;">No data available for the selected filters</div>
+    <!-- Top 5 Most Selling Products Pie Chart -->
+    <div class="chart-container">
+      <h3>Top 5 Most Selling Products (Revenue)</h3>
+      <div class="chart-wrapper">
+        <canvas id="mostSellingPie"></canvas>
       </div>
     </div>
 
-    <!-- Top Selling Products Pie Chart -->
-    <div class="card">
-      <h3 class="text-gold">Top Selling Products</h3>
-      <div class="chart-container" id="top-products-chart-container">
-        <canvas id="topProductsChart"></canvas>
-        <div id="top-products-no-data" class="chart-no-data" style="display: none;">No data available for the selected filters</div>
+    <!-- Sales & Profit Trend Line Chart -->
+    <div class="chart-container">
+      <h3>Sales & Profit Trend</h3>
+      <div class="chart-wrapper">
+        <canvas id="trendLine"></canvas>
       </div>
+    </div>
+  </div>
+
+  <!-- Branch Sales Table -->
+  {% if data %}
+  <div class="table-container mb-8">
+    <h3>Branch Sales Summary</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Branch</th>
+          <th>Opening Balance</th>
+          <th>Sales</th>
+          <th>Closing Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data %}
+        <tr>
+          <td data-label="Branch">{{ row.branch.name }}</td>
+          <td data-label="Opening Balance">KSh {{ row.opening|floatformat:2|intcomma }}</td>
+          <td data-label="Sales">KSh {{ row.sales|floatformat:2|intcomma }}</td>
+          <td data-label="Closing Balance">KSh {{ row.closing|floatformat:2|intcomma }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="font-bold bg-gray-50">
+          <td data-label="Branch">Total</td>
+          <td data-label="Opening Balance">KSh 0</td>
+          <td data-label="Sales">KSh {{ total_sales|floatformat:2|intcomma }}</td>
+          <td data-label="Closing Balance">KSh {{ total_sales|floatformat:2|intcomma }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Alerts Section -->
+  <div class="card mb-8">
+    <h3>Stock Alerts</h3>
+    <div class="alert-tabs">
+      <button class="alert-tab active" data-tab="low">Low Stock ({{ low_stocks|length }})</button>
+      <button class="alert-tab" data-tab="expiry">Near Expiry ({{ near_expiries|length }})</button>
+    </div>
+    <div id="low-tab" class="tab-content">
+      {% if low_stocks %}
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Branch</th>
+              <th>Quantity</th>
+              <th>Batch</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for stock in low_stocks %}
+            <tr>
+              <td data-label="Product">{{ stock.product.name }}</td>
+              <td data-label="Branch">{{ stock.branch.name }}</td>
+              <td data-label="Quantity" class="text-red-600 font-bold">{{ stock.quantity }}</td>
+              <td data-label="Batch">{{ stock.batch }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="no-data">No low stock alerts.</div>
+      {% endif %}
+    </div>
+    <div id="expiry-tab" class="tab-content" style="display: none;">
+      {% if near_expiries %}
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Branch</th>
+              <th>Expiry Date</th>
+              <th>Batch</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for stock in near_expiries %}
+            <tr>
+              <td data-label="Product">{{ stock.product.name }}</td>
+              <td data-label="Branch">{{ stock.branch.name }}</td>
+              <td data-label="Expiry Date" class="text-red-600 font-bold">{{ stock.expiry_date|date:"M d, Y" }}</td>
+              <td data-label="Batch">{{ stock.batch }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="no-data">No near expiry alerts.</div>
+      {% endif %}
     </div>
   </div>
 
   <!-- Stock Report Table -->
+  {% if stock_report %}
   <div class="table-container">
-    <div class="collapsible-header">
-      <h3 class="text-gold">Stock Report</h3>
-      <svg class="toggle-icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-    </div>
-    <div class="collapsible-content active">
-      <input type="text" id="stock-search" class="search-input" placeholder="Search by product...">
-      <table id="stock-table">
-        <thead>
-          <tr>
-            <th class="row-num-header">#</th>
-            <th data-sort="product_name">Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th data-sort="opening">Opening Stock <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th data-sort="sold">Sold <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th data-sort="closing">Closing Stock <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th data-sort="turnover">Turnover Rate <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in stock_report %}
-            <tr>
-              <td class="row-num"></td>
-              <td>{{ item.product_name|default:"Unknown" }}</td>
-              <td>{{ item.opening|default:0 }}</td>
-              <td>{{ item.sold|default:0 }}</td>
-              <td>{{ item.closing|default:0 }}</td>
-              <td class="{% if item.turnover > 2 %}turnover-high{% elif item.turnover < 1 %}turnover-low{% else %}turnover-medium{% endif %}">{{ item.turnover|default:"0.00" }}</td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="6" class="no-data">No stock data available</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <div class="pagination" id="stock-pagination"></div>
-    </div>
+    <h3>Product Stock Turnover Report</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Opening Qty</th>
+          <th>Sold</th>
+          <th>Closing Qty</th>
+          <th>Turnover Ratio</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in stock_report %}
+        <tr>
+          <td data-label="Product">{{ item.product_name }}</td>
+          <td data-label="Opening Qty">{{ item.opening }}</td>
+          <td data-label="Sold" class="font-semibold">{{ item.sold }}</td>
+          <td data-label="Closing Qty">{{ item.closing }}</td>
+          <td data-label="Turnover Ratio">{% if item.turnover > 1 %}<span class="text-green-600">{{ item.turnover|floatformat:2 }}</span>{% else %}{{ item.turnover|floatformat:2 }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-
-  <!-- Low Stock Alerts -->
-  <div class="table-container" id="low-stock-container" {% if request.GET.alert_type == 'expiry' %}style="display:none"{% endif %}>
-    <div class="collapsible-header">
-      <h3 class="text-gold">Low Stock Alerts</h3>
-      <svg class="toggle-icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-    </div>
-    <div class="collapsible-content active">
-      <input type="text" id="low-stock-search" class="search-input" placeholder="Search by product...">
-      <table id="low-stock-table">
-        <thead>
-          <tr>
-            <th class="row-num-header">#</th>
-            <th data-sort="product">Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th data-sort="quantity">Quantity <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th data-sort="branch">Branch <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for stock in low_stocks %}
-            <tr data-type="low_stock">
-              <td class="row-num"></td>
-              <td>{{ stock.product.name|default:"Unknown" }}</td>
-              <td>{{ stock.quantity|default:0 }}</td>
-              <td>{{ stock.branch.name|default:"Unknown" }}</td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="4" class="no-data">No low stock items</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <div class="pagination" id="low-stock-pagination"></div>
-    </div>
-  </div>
-
-  <!-- Expiry Warnings -->
-  <div class="table-container" id="expiry-container" {% if request.GET.alert_type == 'low_stock' %}style="display:none"{% endif %}>
-    <div class="collapsible-header">
-      <h3 class="text-gold">Expiry Warnings</h3>
-      <svg class="toggle-icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-    </div>
-    <div class="collapsible-content active">
-      <input type="text" id="expiry-search" class="search-input" placeholder="Search by product...">
-      <table id="expiry-table">
-        <thead>
-          <tr>
-            <th class="row-num-header">#</th>
-            <th data-sort="product">Product <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th data-sort="expiry_date">Expiry Date <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-            <th data-sort="branch">Branch <svg class="sort-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for stock in near_expiries %}
-            <tr data-type="expiry" data-expiry="{{ stock.expiry_date|date:'Y-m-d' }}">
-              <td class="row-num"></td>
-              <td>{{ stock.product.name|default:"Unknown" }}</td>
-              <td>{{ stock.expiry_date|date:"M d, Y"|default:"N/A" }}</td>
-              <td>{{ stock.branch.name|default:"Unknown" }}</td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="4" class="no-data">No expiring items</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <div class="pagination" id="expiry-pagination"></div>
-    </div>
-  </div>
+  {% else %}
+  <div class="no-data">No stock report data available for the selected period.</div>
+  {% endif %}
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Chart.js CDN (Async Load for Perf) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+
 <script>
-  // Chart Data from Django Context (initial load)
-  const initialDates = [{% for d in daily_data %}'{{ d.date|date:"M d" }}',{% endfor %}];
-  let initialSalesData = [{% for d in daily_data %}{{ d.sales }},{% endfor %}];
-  let initialProfitsData = [{% for d in daily_data %}{{ d.profit }},{% endfor %}];
-  const initialTrendSales = {{ trend_sales|safe }};
-  const initialTrendProfits = {{ trend_profits|safe }};
-  const initialProductNames = [{% for m in most_selling %}'{{ m.product__name }}',{% endfor %}];
-  let initialProductRevenues = [{% for m in most_selling %}{{ m.total_revenue }},{% endfor %}];
-
-  // Parse initial data to floats
-  initialSalesData = initialSalesData.map(v => parseFloat(v) || 0);
-  initialProfitsData = initialProfitsData.map(v => parseFloat(v) || 0);
-  initialProductRevenues = initialProductRevenues.map(v => parseFloat(v) || 0);
-
-  let salesChart, profitChart, topProductsChart;
-
-  function toggleChartVisibility(chartContainerId, canvasId, noDataId, hasData) {
-    const canvas = document.getElementById(canvasId);
-    const noData = document.getElementById(noDataId);
-    if (hasData) {
-      canvas.style.display = 'block';
-      noData.style.display = 'none';
-    } else {
-      canvas.style.display = 'none';
-      noData.style.display = 'block';
-    }
+  // Render Lucide icons lazily (Perf Boost)
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons({lazy: true});
   }
 
-  function updateSummary(data) {
-    // Total Sales
-    const salesEl = document.querySelector('div.card:nth-child(1) p.text-2xl');
-    salesEl.textContent = `KES ${parseFloat(data.total_sales || 0).toFixed(2)}`;
-
-    // Total Profit
-    const profitEl = document.querySelector('div.card:nth-child(2) p.text-2xl');
-    const profitValue = parseFloat(data.total_profit || 0).toFixed(2);
-    profitEl.textContent = `KES ${profitValue}`;
-    if (data.total_profit < 0) {
-      profitEl.className = 'profit-negative text-2xl font-bold currency-kes';
-    } else {
-      profitEl.className = 'profit-positive text-2xl font-bold currency-kes';
-    }
-
-    // Inventory Turnover
-    const turnoverEl = document.querySelector('div.card:nth-child(3) p.text-2xl');
-    turnoverEl.textContent = parseFloat(data.inventory_turnover || 0).toFixed(2);
-
-    // Period
-    const periodEl = document.querySelector('div.card:nth-child(4) p.text-lg');
-    const startFormatted = data.start_date ? new Date(data.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
-    const endFormatted = data.end_date ? new Date(data.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
-    periodEl.textContent = `${startFormatted} to ${endFormatted}`;
-  }
-
-  function updateChartsData(data) {
-    const hasData = data.daily_data && data.daily_data.length > 0;
-    const labels = hasData ? data.daily_data.map(d => new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })) : [];
-
-    // Sales Chart
-    toggleChartVisibility('sales-chart-container', 'salesChart', 'sales-no-data', hasData);
-    if (hasData) {
-      const salesValues = data.daily_data.map(d => parseFloat(d.sales || 0));
-      if (!salesChart) {
-        const salesCtx = document.getElementById('salesChart').getContext('2d');
-        salesChart = new Chart(salesCtx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: 'Daily Sales (KES)',
-                data: salesValues,
-                borderColor: 'rgb(59, 130, 246)',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                tension: 0.1,
-                fill: true
-              },
-              {
-                label: 'Trend Line',
-                data: data.trend_sales || [],
-                borderColor: 'rgb(59, 130, 246)',
-                borderDash: [5, 5],
-                fill: false,
-                tension: 0.1,
-                pointRadius: 0
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 0 },
-            interaction: { intersect: false, mode: 'index' },
-            scales: { y: { beginAtZero: true } },
-            plugins: {
-              legend: { display: true }
-            }
-          }
-        });
-      } else {
-        salesChart.data.labels = labels;
-        salesChart.data.datasets[0].data = salesValues;
-        salesChart.data.datasets[1].data = data.trend_sales || [];
-        salesChart.update('none');
-      }
-    } else if (salesChart) {
-      salesChart.destroy();
-      salesChart = null;
-    }
-
-    // Profit Chart
-    toggleChartVisibility('profit-chart-container', 'profitChart', 'profit-no-data', hasData);
-    if (hasData) {
-      const profitsValues = data.daily_data.map(d => parseFloat(d.profit || 0));
-      if (!profitChart) {
-        const profitCtx = document.getElementById('profitChart').getContext('2d');
-        profitChart = new Chart(profitCtx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: 'Daily Profit (KES)',
-                data: profitsValues,
-                borderColor: 'rgb(34, 197, 94)',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                tension: 0.1,
-                fill: true
-              },
-              {
-                label: 'Trend Line',
-                data: data.trend_profits || [],
-                borderColor: 'rgb(34, 197, 94)',
-                borderDash: [5, 5],
-                fill: false,
-                tension: 0.1,
-                pointRadius: 0
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 0 },
-            interaction: { intersect: false, mode: 'index' },
-            scales: { y: { beginAtZero: false } },
-            plugins: {
-              legend: { display: true }
-            }
-          }
-        });
-      } else {
-        profitChart.data.labels = labels;
-        profitChart.data.datasets[0].data = profitsValues;
-        profitChart.data.datasets[1].data = data.trend_profits || [];
-        profitChart.update('none');
-      }
-    } else if (profitChart) {
-      profitChart.destroy();
-      profitChart = null;
-    }
-
-    // Top Products Chart
-    const hasProducts = data.most_selling && data.most_selling.length > 0;
-    toggleChartVisibility('top-products-chart-container', 'topProductsChart', 'top-products-no-data', hasProducts);
-    if (hasProducts) {
-      const productNames = data.most_selling.map(p => p.product__name || 'Unknown');
-      const productRevenues = data.most_selling.map(p => parseFloat(p.total_revenue || 0));
-      if (!topProductsChart) {
-        const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
-        topProductsChart = new Chart(topProductsCtx, {
-          type: 'pie',
-          data: {
-            labels: productNames,
-            datasets: [{
-              data: productRevenues,
-              backgroundColor: [
-                'rgb(255, 99, 132)', 'rgb(54, 162, 235)', 'rgb(255, 205, 86)', 'rgb(75, 192, 192)',
-                'rgb(153, 102, 255)', 'rgb(255, 159, 64)', 'rgb(199, 199, 199)', 'rgb(83, 102, 255)'
-              ],
-              borderWidth: 1
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 0 },
-            interaction: { intersect: false },
-            plugins: { legend: { position: 'bottom' } },
-            onClick: (e, elements) => {
-              if (elements.length > 0) {
-                const index = elements[0].index;
-                const productName = topProductsChart.data.labels[index];
-                const stockRows = document.querySelectorAll('#stock-table tbody tr');
-                let visibleCount = 0;
-                stockRows.forEach(row => {
-                  if (row.style.display !== 'none') {
-                    const cellText = row.cells[1].textContent.toLowerCase();
-                    if (cellText.includes(productName.toLowerCase())) {
-                      row.style.display = '';
-                      visibleCount++;
-                    } else {
-                      row.style.display = 'none';
-                    }
-                  }
-                });
-                if (visibleCount === 0) {
-                  alert(`No stock data found for "${productName}".`);
-                }
-                displayPage('stock-table');
-              }
-            }
-          }
-        });
-      } else {
-        topProductsChart.data.labels = productNames;
-        topProductsChart.data.datasets[0].data = productRevenues;
-        topProductsChart.update('none');
-      }
-    } else if (topProductsChart) {
-      topProductsChart.destroy();
-      topProductsChart = null;
-    }
-  }
-
-  function updateStockTable(stock_report) {
-    const tbody = document.getElementById('stock-table').tBodies[0];
-    tbody.innerHTML = '';
-    if (!stock_report || stock_report.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="no-data">No stock data available</td></tr>';
-    } else {
-      stock_report.forEach(item => {
-        const tr = document.createElement('tr');
-        const turnoverClass = item.turnover > 2 ? 'turnover-high' : item.turnover < 1 ? 'turnover-low' : 'turnover-medium';
-        tr.innerHTML = `
-          <td class="row-num"></td>
-          <td>${item.product_name || 'Unknown'}</td>
-          <td>${item.opening || 0}</td>
-          <td>${item.sold || 0}</td>
-          <td>${item.closing || 0}</td>
-          <td class="${turnoverClass}">${parseFloat(item.turnover || 0).toFixed(2)}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-    initTable('stock-table');
-  }
-
-  function updateLowStocksTable(low_stocks) {
-    const tbody = document.getElementById('low-stock-table').tBodies[0];
-    tbody.innerHTML = '';
-    if (!low_stocks || low_stocks.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="no-data">No low stock items</td></tr>';
-    } else {
-      low_stocks.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.dataset.type = 'low_stock';
-        tr.innerHTML = `
-          <td class="row-num"></td>
-          <td>${item.product?.name || 'Unknown'}</td>
-          <td>${item.quantity || 0}</td>
-          <td>${item.branch?.name || 'Unknown'}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-    initTable('low-stock-table');
-  }
-
-  function updateExpiryTable(near_expiries) {
-    const tbody = document.getElementById('expiry-table').tBodies[0];
-    tbody.innerHTML = '';
-    if (!near_expiries || near_expiries.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="no-data">No expiring items</td></tr>';
-    } else {
-      near_expiries.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.dataset.type = 'expiry';
-        tr.dataset.expiry = item.expiry_date || '';
-        const expiryFormatted = item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
-        tr.innerHTML = `
-          <td class="row-num"></td>
-          <td>${item.product?.name || 'Unknown'}</td>
-          <td>${expiryFormatted}</td>
-          <td>${item.branch?.name || 'Unknown'}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-    initTable('expiry-table');
-  }
-
-  function submitFilters() {
-    const form = document.getElementById('filter-form');
-    const formData = new FormData(form);
-    const params = new URLSearchParams(formData).toString();
-    const url = `${window.location.pathname}?${params}`;
-    window.history.replaceState({}, '', url);
-    fetch(url, {
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(response => response.json())
-    .then(data => {
-      updateSummary(data);
-      updateChartsData(data);
-      updateStockTable(data.stock_report);
-      updateLowStocksTable(data.low_stocks);
-      updateExpiryTable(data.near_expiries);
-      applyFilters();
-    })
-    .catch(error => console.error('Error applying filters:', error));
-  }
-
-  // Table Management Functions
-  function initTable(tableId) {
-    const table = document.getElementById(tableId);
-    if (!table) return;
-
-    const theadRow = table.tHead.rows[0];
-    let numHeader = theadRow.querySelector('.row-num-header');
-    if (!numHeader) {
-      numHeader = document.createElement('th');
-      numHeader.className = 'row-num-header';
-      numHeader.textContent = '#';
-      theadRow.insertBefore(numHeader, theadRow.firstChild);
-    }
-
-    const tbody = table.tBodies[0];
-    Array.from(tbody.rows).forEach(row => {
-      if (row.querySelector('.no-data')) return;
-      let numCell = row.querySelector('.row-num');
-      if (!numCell) {
-        numCell = document.createElement('td');
-        numCell.className = 'row-num';
-        row.insertBefore(numCell, row.firstChild);
-      }
-    });
-
-    // Update no-data colspan if present
-    const noDataRow = tbody.querySelector('tr td.no-data');
-    if (noDataRow) {
-      noDataRow.colSpan = theadRow.cells.length;
-    }
-
-    // Set col types
-    let colTypes = {};
-    if (tableId === 'stock-table') {
-      colTypes = {
-        product_name: 'string',
-        opening: 'number',
-        sold: 'number',
-        closing: 'number',
-        turnover: 'number'
-      };
-    } else if (tableId === 'low-stock-table') {
-      colTypes = {
-        product: 'string',
-        quantity: 'number',
-        branch: 'string'
-      };
-    } else if (tableId === 'expiry-table') {
-      colTypes = {
-        product: 'string',
-        expiry_date: 'date',
-        branch: 'string'
-      };
-    } else if (tableId === 'notifications-table') {
-      colTypes = {
-        message: 'string',
-        created: 'date'
-      };
-    }
-    window[`${tableId}_colTypes`] = colTypes;
-
-    // Init state
-    if (!window[`${tableId}_searchTerm`]) window[`${tableId}_searchTerm`] = '';
-    if (!window[`${tableId}_rowsPerPage`]) window[`${tableId}_rowsPerPage`] = 10;
-    if (!window[`${tableId}_currentPage`]) window[`${tableId}_currentPage`] = 1;
-
-    // Add pagination controls
-    const content = table.closest('.collapsible-content');
-    let paginationDiv = document.getElementById(`${tableId}-pagination`);
-    if (!paginationDiv) {
-      paginationDiv = document.createElement('div');
-      paginationDiv.id = `${tableId}-pagination`;
-      paginationDiv.className = 'pagination';
-      content.appendChild(paginationDiv);
-    }
-    paginationDiv.innerHTML = `
-      <div class="flex items-center">
-        <label class="mr-2 text-sm">Rows per page:</label>
-        <select id="${tableId}-rows-select" class="border rounded px-2 py-1">
-          <option value="10">10</option>
-          <option value="25">25</option>
-          <option value="1000">All</option>
-        </select>
-      </div>
-      <div class="flex items-center">
-        <button id="${tableId}-prev-btn" class="mr-2 px-3 py-1 bg-gray-200 rounded disabled:opacity-50" onclick="prevPage('${tableId}')">Previous</button>
-        <span id="${tableId}-page-info" class="mx-2 text-sm"></span>
-        <button id="${tableId}-next-btn" class="px-3 py-1 bg-gray-200 rounded disabled:opacity-50" onclick="nextPage('${tableId}')">Next</button>
-      </div>
-    `;
-
-    // Event listeners for pagination
-    const selectEl = document.getElementById(`${tableId}-rows-select`);
-    if (selectEl && !selectEl.dataset.listener) {
-      selectEl.addEventListener('change', (e) => changeRowsPerPage(tableId, e.target.value));
-      selectEl.dataset.listener = 'true';
-    }
-
-    // Sort listeners
-    table.querySelectorAll('th[data-sort]:not([data-listener="sort"])').forEach(th => {
-      th.addEventListener('click', () => sortTable(tableId, th.dataset.sort));
-      th.dataset.listener = 'sort';
-    });
-
-    // Initial display
-    displayPage(tableId);
-  }
-
-  function getColumnIndex(table, column) {
-    return Array.from(table.querySelectorAll('th')).findIndex(th => th.dataset.sort === column) + 1;
-  }
-
-  function displayPage(tableId) {
-    const table = document.getElementById(tableId);
-    if (!table) return;
-    const tbody = table.tBodies[0];
-    const allRows = Array.from(tbody.querySelectorAll('tr')).filter(row => !row.querySelector('.no-data')); // exclude no-data rows
-    const searchTerm = window[`${tableId}_searchTerm`] || '';
-    let filteredRows = allRows;
-
-    // Filter
-    if (searchTerm) {
-      filteredRows = allRows.filter(row => {
-        const productCell = row.cells[1]; // product column
-        return productCell && productCell.textContent.toLowerCase().includes(searchTerm.toLowerCase());
-      });
-    }
-
-    // Sort
-    const sortTh = table.querySelector('th[data-sort][data-order]');
-    let sortColumn = null;
-    let isAsc = false;
-    if (sortTh) {
-      sortColumn = sortTh.dataset.sort;
-      isAsc = sortTh.dataset.order === 'asc';
-      const colTypes = window[`${tableId}_colTypes`];
-      const colType = colTypes[sortColumn];
-      const colCellIndex = getColumnIndex(table, sortColumn) - 1; // 0-based for cells
-
-      filteredRows.sort((a, b) => {
-        let aVal = a.cells[colCellIndex].textContent.trim();
-        let bVal = b.cells[colCellIndex].textContent.trim();
-
-        if (colType === 'number') {
-          aVal = parseFloat(aVal) || 0;
-          bVal = parseFloat(bVal) || 0;
-          return isAsc ? aVal - bVal : bVal - aVal;
-        } else if (colType === 'date') {
-          aVal = a.dataset.expiry ? new Date(a.dataset.expiry) : new Date(aVal);
-          bVal = b.dataset.expiry ? new Date(b.dataset.expiry) : new Date(bVal);
-          return isAsc ? aVal - bVal : bVal - aVal;
-        } else {
-          aVal = aVal.toLowerCase();
-          bVal = bVal.toLowerCase();
-          return isAsc ? (aVal > bVal ? 1 : aVal < bVal ? -1 : 0) : (aVal < bVal ? 1 : aVal > bVal ? -1 : 0);
-        }
-      });
-    }
-
-    const rowsPerPage = window[`${tableId}_rowsPerPage`];
-    const totalFiltered = filteredRows.length;
-    let totalPages = Math.ceil(totalFiltered / rowsPerPage);
-    let currentPage = window[`${tableId}_currentPage`];
-    if (currentPage > totalPages) currentPage = totalPages;
-    window[`${tableId}_currentPage`] = currentPage;
-
-    const start = (currentPage - 1) * rowsPerPage;
-    const end = Math.min(start + rowsPerPage, totalFiltered);
-
-    // Hide all data rows
-    allRows.forEach(row => row.style.display = 'none');
-
-    // Show paginated rows and number them
-    for (let i = start; i < end; i++) {
-      const row = filteredRows[i];
-      row.style.display = '';
-      row.cells[0].textContent = (i + 1);
-    }
-
-    // Handle no-data row
-    let noDataRow = tbody.querySelector('tr td.no-data');
-    if (totalFiltered === 0) {
-      if (!noDataRow) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td colspan="${table.tHead.rows[0].cells.length}" class="no-data">No data available</td>`;
-        tbody.appendChild(tr);
-      } else {
-        noDataRow.parentNode.style.display = '';
-      }
-    } else if (noDataRow) {
-      noDataRow.parentNode.style.display = 'none';
-    }
-
-    // Update pagination info and buttons
-    const pageInfo = document.getElementById(`${tableId}-page-info`);
-    if (totalFiltered === 0) {
-      pageInfo.textContent = 'No entries to show';
-    } else {
-      pageInfo.textContent = `Page ${currentPage} of ${totalPages} | Showing ${start + 1} to ${end} of ${totalFiltered} entries`;
-    }
-
-    const prevBtn = document.getElementById(`${tableId}-prev-btn`);
-    const nextBtn = document.getElementById(`${tableId}-next-btn`);
-    prevBtn.disabled = currentPage <= 1;
-    nextBtn.disabled = currentPage >= totalPages;
-  }
-
-  function sortTable(tableId, column) {
-    const th = document.querySelector(`#${tableId} th[data-sort="${column}"]`);
-    if (!th) return;
-    const isAsc = th.dataset.order === 'asc';
-    th.dataset.order = isAsc ? 'desc' : 'asc';
-    updateSortIcons(tableId, column, !isAsc);
-    window[`${tableId}_currentPage`] = 1;
-    displayPage(tableId);
-  }
-
-  function updateSortIcons(tableId, column, isAsc) {
-    const table = document.getElementById(tableId);
-    if (!table) return;
-    table.querySelectorAll('th .sort-icon').forEach(icon => {
-      icon.innerHTML = '<path d="M7 10l5 5 5-5z"/>';
-    });
-    const activeIcon = table.querySelector(`th[data-sort="${column}"] .sort-icon`);
-    if (activeIcon) {
-      activeIcon.innerHTML = isAsc ? '<path d="M7 14l5-5 5 5z"/>' : '<path d="M7 10l5 5 5-5z"/>';
-    }
-  }
-
-  function changeRowsPerPage(tableId, val) {
-    window[`${tableId}_rowsPerPage`] = parseInt(val);
-    window[`${tableId}_currentPage`] = 1;
-    displayPage(tableId);
-  }
-
-  function prevPage(tableId) {
-    if (window[`${tableId}_currentPage`] > 1) {
-      window[`${tableId}_currentPage`]--;
-      displayPage(tableId);
-    }
-  }
-
-  function nextPage(tableId) {
-    const totalPages = Math.ceil(getFilteredRowCount(tableId) / window[`${tableId}_rowsPerPage`]);
-    if (window[`${tableId}_currentPage`] < totalPages) {
-      window[`${tableId}_currentPage`]++;
-      displayPage(tableId);
-    }
-  }
-
-  function getFilteredRowCount(tableId) {
-    // Approximate, call displayPage to update
-    displayPage(tableId); // To ensure updated
-    const table = document.getElementById(tableId);
-    return Array.from(table.tBodies[0].querySelectorAll('tr')).filter(row => row.style.display !== 'none' && !row.querySelector('.no-data')).length;
-  }
-
-  function filterTable(tableId, searchTerm) {
-    window[`${tableId}_searchTerm`] = searchTerm;
-    window[`${tableId}_currentPage`] = 1;
-    displayPage(tableId);
-  }
-
-  // Real-time update function for charts only
-  function updateCharts() {
-    fetch(window.location.href, {
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(response => response.json())
-    .then(data => {
-      updateChartsData(data);
-    })
-    .catch(error => console.error('Error updating charts:', error));
-  }
-
-  // Chart initialization
+  // Tab switching for alerts
   document.addEventListener('DOMContentLoaded', () => {
-    // Init tables
-    ['stock-table', 'low-stock-table', 'expiry-table'].forEach(initTable);
+    const tabs = document.querySelectorAll('.alert-tab');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.style.display = 'none');
+        tab.classList.add('active');
+        document.getElementById(`${tab.dataset.tab}-tab`).style.display = 'block';
+      });
+    });
 
-    const hasInitialData = initialDates.length > 0;
-    toggleChartVisibility('sales-chart-container', 'salesChart', 'sales-no-data', hasInitialData);
-    toggleChartVisibility('profit-chart-container', 'profitChart', 'profit-no-data', hasInitialData);
-    toggleChartVisibility('top-products-chart-container', 'topProductsChart', 'top-products-no-data', initialProductNames.length > 0);
+    // Custom date range toggle with native date picker enhancement
+    const dateRange = document.getElementById('date-range');
+    const startDate = document.getElementById('start_date');
+    const endDate = document.getElementById('end_date');
+    const startDiv = startDate ? startDate.closest('div') : null;
+    const endDiv = endDate ? endDate.closest('div') : null;
+    if (dateRange && startDiv && endDiv) {
+      const toggleDates = () => {
+        const showDates = dateRange.value === 'custom';
+        startDiv.style.display = showDates ? 'block' : 'none';
+        endDiv.style.display = showDates ? 'block' : 'none';
+        startDate.disabled = !showDates;
+        endDate.disabled = !showDates;
+        if (showDates && (!startDate.value || !endDate.value)) {
+          const today = new Date();
+          const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+          startDate.value = sevenDaysAgo.toISOString().split('T')[0];
+          endDate.value = today.toISOString().split('T')[0];
+        }
+      };
+      dateRange.addEventListener('change', toggleDates);
+      // Initial state
+      toggleDates();
+    }
 
-    if (hasInitialData) {
-      // Initialize Charts
-      const salesCtx = document.getElementById('salesChart').getContext('2d');
-      salesChart = new Chart(salesCtx, {
-        type: 'line',
+    // Trigger animation
+    document.querySelector('.reports-container').style.opacity = '1';
+
+    // Initialize Charts
+    initializeCharts();
+  });
+
+  function initializeCharts() {
+    const labels = [{% for d in daily_data %}'{{ d.date|date:"MMM dd" }}',{% endfor %}].filter(Boolean);
+    const salesData = [{% for d in daily_data %}{{ d.sales }},{% endfor %}].filter(Boolean);
+    const profitData = [{% for d in daily_data %}{{ d.profit }},{% endfor %}].filter(Boolean);
+
+    // Daily Sales Bar Chart
+    const dailyBarCtx = document.getElementById('dailySalesBar');
+    if (dailyBarCtx && labels.length > 0) {
+      new Chart(dailyBarCtx, {
+        type: 'bar',
         data: {
-          labels: initialDates,
-          datasets: [
-            {
-              label: 'Daily Sales (KES)',
-              data: initialSalesData,
-              borderColor: 'rgb(59, 130, 246)',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              tension: 0.1,
-              fill: true
-            },
-            {
-              label: 'Trend Line',
-              data: initialTrendSales,
-              borderColor: 'rgb(59, 130, 246)',
-              borderDash: [5, 5],
-              fill: false,
-              tension: 0.1,
-              pointRadius: 0
-            }
-          ]
+          labels: labels,
+          datasets: [{
+            label: 'Sales (KSh)',
+            data: salesData,
+            backgroundColor: 'rgba(212, 175, 55, 0.8)',
+            borderColor: 'rgb(212, 175, 55)',
+            borderWidth: 1
+          }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          animation: { duration: 0 },
-          interaction: { intersect: false, mode: 'index' },
-          scales: { y: { beginAtZero: true } },
           plugins: {
-            legend: { display: true }
-          }
-        }
-      });
-
-      const profitCtx = document.getElementById('profitChart').getContext('2d');
-      profitChart = new Chart(profitCtx, {
-        type: 'line',
-        data: {
-          labels: initialDates,
-          datasets: [
-            {
-              label: 'Daily Profit (KES)',
-              data: initialProfitsData,
-              borderColor: 'rgb(34, 197, 94)',
-              backgroundColor: 'rgba(34, 197, 94, 0.1)',
-              tension: 0.1,
-              fill: true
+            legend: {
+              display: false
             },
-            {
-              label: 'Trend Line',
-              data: initialTrendProfits,
-              borderColor: 'rgb(34, 197, 94)',
-              borderDash: [5, 5],
-              fill: false,
-              tension: 0.1,
-              pointRadius: 0
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: 'white',
+              bodyColor: 'white',
+              borderColor: 'rgba(212, 175, 55, 0.5)',
+              borderWidth: 1,
+              cornerRadius: 8,
+              displayColors: false,
+              callbacks: {
+                title: function(context) {
+                  return `Date: ${context[0].label}`;
+                },
+                label: function(context) {
+                  return `Sales: KSh ${context.parsed.y.toLocaleString()}`;
+                }
+              }
             }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: { duration: 0 },
-          interaction: { intersect: false, mode: 'index' },
-          scales: { y: { beginAtZero: false } },
-          plugins: {
-            legend: { display: true }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return 'KSh ' + value.toLocaleString();
+                }
+              }
+            },
+            x: {
+              ticks: {
+                maxRotation: 45,
+                minRotation: 0
+              }
+            }
           }
         }
       });
+    }
 
-      const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
-      topProductsChart = new Chart(topProductsCtx, {
+    // Top 5 Most Selling Products Pie Chart
+    {% if most_selling %}
+    const mostLabels = [{% for m in most_selling %}'{{ m.product__name }}',{% endfor %}].filter(Boolean);
+    const mostData = [{% for m in most_selling %}{{ m.total_revenue }},{% endfor %}].filter(Boolean);
+    const totalRevenue = mostData.reduce((a, b) => a + b, 0);
+    const mostPieCtx = document.getElementById('mostSellingPie');
+    if (mostPieCtx && mostLabels.length > 0) {
+      new Chart(mostPieCtx, {
         type: 'pie',
         data: {
-          labels: initialProductNames,
+          labels: mostLabels,
           datasets: [{
-            data: initialProductRevenues,
+            data: mostData,
             backgroundColor: [
-              'rgb(255, 99, 132)', 'rgb(54, 162, 235)', 'rgb(255, 205, 86)', 'rgb(75, 192, 192)',
-              'rgb(153, 102, 255)', 'rgb(255, 159, 64)', 'rgb(199, 199, 199)', 'rgb(83, 102, 255)'
+              'rgba(212, 175, 55, 0.8)',
+              'rgba(6, 95, 70, 0.8)',
+              'rgba(251, 146, 60, 0.8)',
+              'rgba(59, 130, 246, 0.8)',
+              'rgba(16, 185, 129, 0.8)'
             ],
             borderWidth: 1
           }]
@@ -1132,90 +659,101 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          animation: { duration: 0 },
-          interaction: { intersect: false },
-          plugins: { legend: { position: 'bottom' } },
-          onClick: (e, elements) => {
-            if (elements.length > 0) {
-              const index = elements[0].index;
-              const productName = topProductsChart.data.labels[index];
-              const stockRows = document.querySelectorAll('#stock-table tbody tr');
-              let visibleCount = 0;
-              stockRows.forEach(row => {
-                if (row.style.display !== 'none') {
-                  const cellText = row.cells[1].textContent.toLowerCase();
-                  if (cellText.includes(productName.toLowerCase())) {
-                    row.style.display = '';
-                    visibleCount++;
-                  } else {
-                    row.style.display = 'none';
-                  }
+          plugins: {
+            legend: {
+              position: 'right'
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: 'white',
+              bodyColor: 'white',
+              borderColor: 'rgba(212, 175, 55, 0.5)',
+              borderWidth: 1,
+              cornerRadius: 8,
+              callbacks: {
+                label: function(context) {
+                  const percentage = ((context.parsed / totalRevenue) * 100).toFixed(1);
+                  return `${context.label}: KSh ${context.parsed.toLocaleString()} (${percentage}%)`;
                 }
-              });
-              if (visibleCount === 0) {
-                alert(`No stock data found for "${productName}".`);
               }
-              displayPage('stock-table');
             }
           }
         }
       });
     }
+    {% endif %}
 
-    setInterval(updateCharts, 30000);
-
-    // Real-time search event listeners (immediate on input)
-    document.getElementById('stock-search')?.addEventListener('input', e => filterTable('stock-table', e.target.value));
-    document.getElementById('low-stock-search')?.addEventListener('input', e => filterTable('low-stock-table', e.target.value));
-    document.getElementById('expiry-search')?.addEventListener('input', e => filterTable('expiry-table', e.target.value));
-
-    document.getElementById('alert-type')?.addEventListener('change', submitFilters);
-    document.getElementById('branch')?.addEventListener('change', submitFilters);
-    document.getElementById('date-range')?.addEventListener('change', function() {
-      const customDate = document.getElementById('custom-date');
-      const customDateEnd = document.getElementById('custom-date-end');
-      if (this.value === 'custom') {
-        customDate.classList.remove('hidden');
-        customDateEnd.classList.remove('hidden');
-      } else {
-        customDate.classList.add('hidden');
-        customDateEnd.classList.add('hidden');
-      }
-      submitFilters();
-    });
-    document.getElementById('start-date')?.addEventListener('change', submitFilters);
-    document.getElementById('end-date')?.addEventListener('change', submitFilters);
-
-    // Collapsible
-    document.querySelectorAll('.collapsible-header').forEach(header => {
-      header.addEventListener('click', () => {
-        const content = header.nextElementSibling;
-        const icon = header.querySelector('.toggle-icon');
-        content.classList.toggle('active');
-        icon.innerHTML = content.classList.contains('active') ?
-          '<path d="M7 10l5 5 5-5z"/>' :
-          '<path d="M7 14l5-5 5 5z"/>';
+    // Sales & Profit Trend Line Chart
+    const trendCtx = document.getElementById('trendLine');
+    if (trendCtx && labels.length > 0) {
+      new Chart(trendCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Sales (KSh)',
+              data: salesData,
+              borderColor: 'rgb(212, 175, 55)',
+              backgroundColor: 'rgba(212, 175, 55, 0.1)',
+              tension: 0.4,
+              fill: true
+            },
+            {
+              label: 'Profit (KSh)',
+              data: profitData,
+              borderColor: 'rgb(6, 95, 70)',
+              backgroundColor: 'rgba(6, 95, 70, 0.1)',
+              tension: 0.4,
+              fill: true
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top'
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: 'white',
+              bodyColor: 'white',
+              borderColor: 'rgba(212, 175, 55, 0.5)',
+              borderWidth: 1,
+              cornerRadius: 8,
+              callbacks: {
+                title: function(context) {
+                  return `Date: ${context[0].label}`;
+                },
+                label: function(context) {
+                  return `${context.dataset.label}: KSh ${context.parsed.y.toLocaleString()}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return 'KSh ' + value.toLocaleString();
+                }
+              }
+            },
+            x: {
+              ticks: {
+                maxRotation: 45,
+                minRotation: 0
+              }
+            }
+          }
+        }
       });
-    });
-
-    applyFilters();
-  });
-
-  function applyFilters() {
-    const alertType = document.getElementById('alert-type')?.value || '';
-    document.getElementById('low-stock-container').style.display = (alertType === '' || alertType === 'low_stock') ? '' : 'none';
-    document.getElementById('expiry-container').style.display = (alertType === '' || alertType === 'expiry') ? '' : 'none';
-  }
-
-  function resetFilters() {
-    document.getElementById('date-range').value = 'today';
-    document.getElementById('start-date').value = '';
-    document.getElementById('end-date').value = '';
-    document.getElementById('branch').value = '';
-    document.getElementById('alert-type').value = '';
-    document.getElementById('custom-date').classList.add('hidden');
-    document.getElementById('custom-date-end').classList.add('hidden');
-    submitFilters();
+    }
   }
 </script>
 {% endblock %}
