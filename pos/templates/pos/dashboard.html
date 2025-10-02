@@ -177,6 +177,56 @@
     height: 320px;
     margin-top: 20px;
   }
+  .logs-container {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    padding: 28px;
+    margin-bottom: 28px;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.4s ease;
+  }
+  .logs-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+  }
+  .table-container {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 24px;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+  }
+  th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  th {
+    background-color: var(--darkgreen);
+    color: #ffffff;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  tr:hover {
+    background-color: #f8fafc;
+  }
+  .login-action {
+    color: #10b981;
+    font-weight: 500;
+  }
+  .logout-action {
+    color: #ef4444;
+    font-weight: 500;
+  }
   h3 {
     font-size: 1.25rem;
     font-weight: 700;
@@ -216,6 +266,9 @@
     .chart-wrapper {
       height: 280px;
     }
+    table {
+      min-width: 500px;
+    }
   }
   @media (max-width: 480px) {
     .metric-value {
@@ -226,6 +279,10 @@
     }
     .low-stock-list {
       max-height: 60px;
+    }
+    th, td {
+      padding: 8px 4px;
+      font-size: 0.875rem;
     }
   }
 </style>
@@ -306,6 +363,39 @@
       <div class="chart-wrapper">
         <canvas id="salesChart"></canvas>
       </div>
+    </div>
+  </div>
+
+  <!-- User Login/Logout Logs Section -->
+  <div class="logs-container">
+    <h3>Today's Login/Logout Activity</h3>
+    <div class="table-container">
+      {% if user_logs %}
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Time</th>
+              <th>Action</th>
+              <th>IP Address</th>
+              <th>User Agent</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in user_logs %}
+              <tr>
+                <td>{{ log.user.get_full_name|default:log.user.username }}</td>
+                <td>{{ log.timestamp|date:"H:i:s" }}</td>
+                <td class="{% if log.action == 'login' %}login-action{% else %}logout-action{% endif %}">{{ log.get_action_display }}</td>
+                <td>{{ log.ip_address|default:"N/A" }}</td>
+                <td>{{ log.user_agent|truncatechars:30|default:"N/A" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="no-data">No login/logout activity today.</div>
+      {% endif %}
     </div>
   </div>
 </div>

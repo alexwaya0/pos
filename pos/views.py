@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.http import JsonResponse
 from decimal import Decimal
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Count, Min
-from .models import Branch, Product, ProductStock, Customer, Sale, SaleItem
+from .models import Branch, Product, ProductStock, Customer, Sale, SaleItem, UserActivityLog
 from .forms import ProductForm, ProductStockForm, SaleCreateForm
 from datetime import timedelta, datetime
 import numpy as np
@@ -48,6 +48,19 @@ def dashboard(request):
     low_stock_threshold = 10
     expiry_days_threshold = 60
 
+    # Last 7 days for shared date range (used for sales and now logs)
+    end_date = today
+    start_date = end_date - timedelta(days=6)
+    period_start = timezone.datetime.combine(start_date, timezone.datetime.min.time()).replace(tzinfo=timezone.get_current_timezone())
+    period_end = timezone.datetime.combine(end_date, timezone.datetime.max.time()).replace(tzinfo=timezone.get_current_timezone())
+
+    # User activity logs for last 7 days
+    user_logs = UserActivityLog.objects.filter(
+        timestamp__gte=period_start,
+        timestamp__lte=period_end
+    ).order_by('-timestamp')[:20]
+    context['user_logs'] = user_logs
+
     if role in ['cashier', 'manager']:
         try:
             branch = request.user.profile.branch
@@ -65,8 +78,6 @@ def dashboard(request):
         prescriptions_today = Sale.objects.filter(branch=branch, created_at__date=today).count()  # Proxy for prescriptions
 
         # Last 7 days sales for chart
-        end_date = today
-        start_date = end_date - timedelta(days=6)
         daily_sales = []
         current_date = start_date
         while current_date <= end_date:
@@ -106,8 +117,6 @@ def dashboard(request):
         prescriptions_today = Sale.objects.filter(created_at__date=today).count()
 
         # Last 7 days sales for chart (all branches)
-        end_date = today
-        start_date = end_date - timedelta(days=6)
         daily_sales = []
         current_date = start_date
         while current_date <= end_date:
