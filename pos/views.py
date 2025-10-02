@@ -8,7 +8,7 @@ from django.core.mail import send_mail
 from django.urls import reverse
 from django.http import JsonResponse
 from decimal import Decimal
-from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Count
+from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Count, Min
 from .models import Branch, Product, ProductStock, Customer, Sale, SaleItem
 from .forms import ProductForm, ProductStockForm, SaleCreateForm
 from datetime import timedelta, datetime
@@ -212,7 +212,13 @@ def sale_create(request):
                     chosen_stock = stock_qs.first()
                     if not chosen_stock:
                         messages.error(request, f"Insufficient stock for {it['product'].name} in branch {branch.name}")
-                        raise Exception("Insufficient stock")
+                        sale.delete()  # Rollback sale
+                        return redirect("pos:sale_create")
+                    # New check: Prevent sales at a loss
+                    if it["unit_price"] < chosen_stock.unit_cost:
+                        messages.error(request, f"Cannot sell {it['product'].name} at a loss. Selling price KSh {it['unit_price']} < cost KSh {chosen_stock.unit_cost}")
+                        sale.delete()  # Rollback sale
+                        return redirect("pos:sale_create")
                     chosen_stock.quantity -= it["qty"]
                     chosen_stock.save()
                     line_total = it["unit_price"] * it["qty"]
@@ -285,28 +291,37 @@ def reports(request):
     low_stock_threshold = 10
     expiry_days_threshold = 60
 
-    date_range = request.GET.get('date-range', 'today')
+    date_range = request.GET.get('date-range', 'week')
     branch_id = request.GET.get('branch', '')
     alert_type = request.GET.get('alert_type', '')
     start_date_str = request.GET.get('start_date')
     end_date_str = request.GET.get('end_date')
 
-    if date_range == 'week':
-        start_date = today - timedelta(days=7)
+    if date_range == 'today':
+        start_date = today
+        end_date = today
+    elif date_range == 'week':
+        start_date = today - timedelta(days=6)
         end_date = today
     elif date_range == 'month':
         start_date = today - timedelta(days=30)
+        end_date = today
+    elif date_range == 'all_time':
+        min_date = Sale.objects.aggregate(min_date=Min('created_at__date'))['min_date']
+        # Practical limit: 2 years back to avoid excessive loops
+        earliest_possible = today - timedelta(days=730)
+        start_date = max(min_date, earliest_possible) if min_date else today
         end_date = today
     elif date_range == 'custom' and start_date_str and end_date_str:
         try:
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
         except ValueError:
-            messages.error(request, "Invalid date format. Using today's data.")
-            start_date = today
+            messages.error(request, "Invalid date format. Using last 7 days data.")
+            start_date = today - timedelta(days=6)
             end_date = today
     else:
-        start_date = today
+        start_date = today - timedelta(days=6)
         end_date = today
 
     selected_branches = branches
@@ -421,6 +436,7 @@ def reports(request):
         'trend_profits': [round(val, 2) for val in trend_profits],
         'start_date': start_date,
         'end_date': end_date,
+        'date_range': date_range,
     }
 
     # Check for AJAX request for real-time updates

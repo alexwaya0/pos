@@ -4,6 +4,7 @@
 {% block page_title %}Reports{% endblock %}
 {% block content %}
 <style>
+  /* Reports Container Animation */
   .reports-container {
     animation: fadeSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     opacity: 0;
@@ -12,6 +13,7 @@
   @keyframes fadeSlideIn {
     to { opacity: 1; transform: translateY(0); }
   }
+  /* General Card Styles */
   .card {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: none;
@@ -39,17 +41,17 @@
   }
   .card:hover::before { opacity: 1; }
   /* Card-specific colors */
-  .card-sales { 
-    background: linear-gradient(145deg, #FFF3E0 0%, #FFE0B2 50%, rgba(255, 224, 178, 0.8) 100%); 
+  .card-sales {
+    background: linear-gradient(145deg, #FFF3E0 0%, #FFE0B2 50%, rgba(255, 224, 178, 0.8) 100%);
     border: 1px solid rgba(251, 146, 60, 0.1);
   }
-  .card-profit { 
-    background: linear-gradient(145deg, #E6F7F2 0%, #CCEFE7 50%, rgba(204, 239, 231, 0.8) 100%); 
-    color: #065f46; 
+  .card-profit {
+    background: linear-gradient(145deg, #E6F7F2 0%, #CCEFE7 50%, rgba(204, 239, 231, 0.8) 100%);
+    color: #065f46;
     border: 1px solid rgba(6, 95, 70, 0.1);
   }
-  .card-turnover { 
-    background: linear-gradient(145deg, #F0F9FF 0%, #E0F2FE 50%, rgba(224, 242, 254, 0.8) 100%); 
+  .card-turnover {
+    background: linear-gradient(145deg, #F0F9FF 0%, #E0F2FE 50%, rgba(224, 242, 254, 0.8) 100%);
     border: 1px solid rgba(59, 130, 246, 0.1);
   }
   .filter-card {
@@ -57,6 +59,7 @@
     border: 1px solid rgba(212, 175, 55, 0.1);
     margin-bottom: 2rem;
   }
+  /* Metric Styles */
   .metric-icon {
     width: 44px;
     height: 44px;
@@ -86,6 +89,7 @@
     margin: 0;
     line-height: 1.1;
   }
+  /* Table Styles */
   .table-container {
     background: #ffffff;
     border-radius: 16px;
@@ -93,9 +97,10 @@
     padding: 24px;
     overflow-x: auto;
     margin-bottom: 24px;
+    width: 100%;
   }
   table {
-    width: 100%;
+    width: 100% !important;
     border-collapse: collapse;
     min-width: 600px;
   }
@@ -116,6 +121,7 @@
   tr:hover {
     background-color: #f8fafc;
   }
+  /* Button Styles */
   .refresh-btn {
     background: linear-gradient(135deg, var(--gold), var(--gold-dark));
     color: var(--darkgreen);
@@ -134,6 +140,7 @@
     transform: translateY(-1px) scale(1.05);
     box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
   }
+  /* Filter Form Styles */
   .filter-form {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -161,19 +168,21 @@
     background: var(--gold-dark);
     transform: translateY(-1px);
   }
+  /* Heading Styles */
   h3 {
     font-size: 1.125rem;
     font-weight: 600;
     color: var(--darkgreen);
     margin: 0 0 16px 0;
   }
+  /* No Data Styles */
   .no-data {
     text-align: center;
     color: var(--muted);
     padding: 40px;
     font-style: italic;
   }
-  /* Chart Styles - Mirrored from dashboard */
+  /* Chart Styles */
   .chart-container {
     background: white;
     border-radius: 16px;
@@ -187,6 +196,7 @@
     height: 300px;
     margin-top: 16px;
   }
+  /* Alert Tabs Styles */
   .alert-tabs {
     display: flex;
     gap: 8px;
@@ -207,8 +217,56 @@
   }
   .tab-content {
     display: block;
+    width: 100%;
   }
-  /* Responsive table adjustments */
+  /* DataTables Theme Integration */
+  .dataTables_wrapper {
+    font-family: inherit;
+  }
+  .dataTables_wrapper select,
+  .dataTables_wrapper .dataTables_length select {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 4px 8px;
+    background: white;
+  }
+  .dataTables_wrapper .dataTables_filter input {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: white;
+  }
+  .dataTables_wrapper .dataTables_filter label {
+    color: #6b7280;
+  }
+  .dataTables_wrapper .dataTables_info {
+    color: #6b7280;
+  }
+  .dataTables_wrapper .dataTables_paginate .paginate_button {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: white;
+    color: var(--darkgreen);
+    margin: 0 2px;
+    padding: 4px 8px;
+    transition: all 0.2s ease;
+  }
+  .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--darkgreen);
+  }
+  .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--darkgreen);
+  }
+  .dataTables_wrapper .dataTables_length label,
+  .dataTables_wrapper .dataTables_filter label {
+    font-weight: 500;
+    color: #6b7280;
+  }
+  /* Responsive adjustments */
   @media (max-width: 768px) {
     .table-container {
       padding: 16px;
@@ -241,54 +299,30 @@
     .filter-form {
       grid-template-columns: 1fr;
     }
-    /* Stacked table for very small screens */
-    @media (max-width: 480px) {
-      table, thead, tbody, th, td, tr {
-        display: block;
-      }
-      thead tr {
-        position: absolute;
-        top: -9999px;
-        left: -9999px;
-      }
-      tr {
-        border: 1px solid #ccc;
-        margin-bottom: 1rem;
-        padding: 1rem;
-        border-radius: 8px;
-      }
-      td {
-        border: none;
-        position: relative;
-        padding-left: 50%;
-        white-space: normal;
-        text-align: right;
-      }
-      td:before {
-        content: attr(data-label);
-        position: absolute;
-        left: 6px;
-        width: 45%;
-        padding-right: 10px;
-        white-space: nowrap;
-        text-align: left;
-        font-weight: bold;
-        color: var(--darkgreen);
-      }
-    }
   }
 </style>
-
 <div class="reports-container">
   <!-- Filters Card -->
   <div class="card filter-card">
-    <form method="GET" class="filter-form">
+    <form method="GET" class="filter-form" x-data="{ custom: {% if date_range == 'custom' %}true{% else %}false{% endif %} }" x-init="
+      // Enforce default to last 7 days if no date_range specified
+      if (!{{ date_range|default:''|length }}) {
+        $refs.dateRange.value = 'week';
+      }
+      if (custom && (!$refs.startDate.value || !$refs.endDate.value)) { 
+        const today = new Date(); 
+        const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000); 
+        $refs.startDate.value = sevenDaysAgo.toISOString().split('T')[0]; 
+        $refs.endDate.value = today.toISOString().split('T')[0]; 
+      }
+    ">
       <div>
         <label for="date-range">Date Range:</label>
-        <select name="date-range" id="date-range">
+        <select name="date-range" id="date-range" ref="dateRange" @change="custom = $event.target.value === 'custom'">
           <option value="today" {% if date_range == 'today' %}selected{% endif %}>Today</option>
           <option value="week" {% if date_range == 'week' or not date_range %}selected{% endif %}>Last 7 Days</option>
           <option value="month" {% if date_range == 'month' %}selected{% endif %}>Last Month</option>
+          <option value="all_time" {% if date_range == 'all_time' %}selected{% endif %}>All Time</option>
           <option value="custom" {% if date_range == 'custom' %}selected{% endif %}>Custom</option>
         </select>
       </div>
@@ -303,18 +337,17 @@
           <option value="expiry" {% if alert_type == 'expiry' %}selected{% endif %}>Near Expiry</option>
         </select>
       </div>
-      <div>
+      <div x-show="custom" x-transition>
         <label for="start_date">Start Date:</label>
-        <input type="date" name="start_date" id="start_date" value="{% if start_date %}{{ start_date|date:'Y-m-d' }}{% endif %}">
+        <input type="date" name="start_date" id="start_date" ref="startDate" value="{% if start_date %}{{ start_date|date:'Y-m-d' }}{% endif %}" :disabled="!custom">
       </div>
-      <div>
+      <div x-show="custom" x-transition>
         <label for="end_date">End Date:</label>
-        <input type="date" name="end_date" id="end_date" value="{% if end_date %}{{ end_date|date:'Y-m-d' }}{% endif %}">
+        <input type="date" name="end_date" id="end_date" ref="endDate" value="{% if end_date %}{{ end_date|date:'Y-m-d' }}{% endif %}" :disabled="!custom">
       </div>
       <button type="submit">Apply Filters</button>
     </form>
   </div>
-
   <!-- Summary Cards Grid -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
     <!-- Total Sales Card -->
@@ -329,20 +362,18 @@
         </div>
       </div>
     </div>
-
     <!-- Total Profit Card -->
     <div class="card card-profit">
       <div class="flex items-center mb-4">
         <div class="metric-icon">
-          <i data-lucide="dollar-sign" class="w-5 h-5 text-green-600"></i>
+          <i data-lucide="dollar-sign" class="w-5 h-5 {% if total_profit > 0 %}text-green-600{% else %}text-red-600{% endif %}"></i>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="metric-title">Total Profit</p>
-          <p class="metric-value text-green-600">KSh {{ total_profit|floatformat:0|intcomma }}</p>
+          <p class="metric-title">{% if total_profit > 0 %}Total Profit{% else %}Total Loss{% endif %}</p>
+          <p class="metric-value {% if total_profit > 0 %}text-green-600{% else %}text-red-600{% endif %}">KSh {{ total_profit|floatformat:0|intcomma }}</p>
         </div>
       </div>
     </div>
-
     <!-- Inventory Turnover Card -->
     <div class="card card-turnover">
       <div class="flex items-center mb-4">
@@ -356,39 +387,45 @@
       </div>
     </div>
   </div>
-
   <!-- Charts Section -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-    <!-- Daily Sales Bar Chart -->
-    <div class="chart-container">
-      <h3>Daily Sales</h3>
+  <div class="mb-8">
+    <!-- Sales Trend Line Chart - Full Row -->
+    <div class="chart-container mb-6">
+      <h3>Sales Trend</h3>
       <div class="chart-wrapper">
-        <canvas id="dailySalesBar"></canvas>
+        <canvas id="dailySalesLine"></canvas>
       </div>
     </div>
-
-    <!-- Top 5 Most Selling Products Pie Chart -->
-    <div class="chart-container">
-      <h3>Top 5 Most Selling Products (Revenue)</h3>
-      <div class="chart-wrapper">
-        <canvas id="mostSellingPie"></canvas>
+    <!-- Other Charts Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- 5 Most Selling Products Pie Chart -->
+      <div class="chart-container">
+        <h3>5 Most Selling Products</h3>
+        <div class="chart-wrapper">
+          <canvas id="mostSellingPie"></canvas>
+        </div>
       </div>
-    </div>
-
-    <!-- Sales & Profit Trend Line Chart -->
-    <div class="chart-container">
-      <h3>Sales & Profit Trend</h3>
-      <div class="chart-wrapper">
-        <canvas id="trendLine"></canvas>
+      <!-- Top Products by Turnover Bar Chart -->
+      <div class="chart-container">
+        <h3>Top Products by Turnover</h3>
+        <div class="chart-wrapper">
+          <canvas id="topTurnover"></canvas>
+        </div>
+      </div>
+      <!-- Profit Trend Line Chart -->
+      <div class="chart-container">
+        <h3>Profit Trend</h3>
+        <div class="chart-wrapper">
+          <canvas id="profitTrend"></canvas>
+        </div>
       </div>
     </div>
   </div>
-
   <!-- Branch Sales Table -->
   {% if data %}
   <div class="table-container mb-8">
-    <h3>Branch Sales Summary</h3>
-    <table>
+    <h3>Sales Summary</h3>
+    <table id="branchTable" class="display">
       <thead>
         <tr>
           <th>Branch</th>
@@ -400,34 +437,33 @@
       <tbody>
         {% for row in data %}
         <tr>
-          <td data-label="Branch">{{ row.branch.name }}</td>
-          <td data-label="Opening Balance">KSh {{ row.opening|floatformat:2|intcomma }}</td>
-          <td data-label="Sales">KSh {{ row.sales|floatformat:2|intcomma }}</td>
-          <td data-label="Closing Balance">KSh {{ row.closing|floatformat:2|intcomma }}</td>
+          <td>{{ row.branch.name }}</td>
+          <td>KSh {{ row.opening|floatformat:2|intcomma }}</td>
+          <td>KSh {{ row.sales|floatformat:2|intcomma }}</td>
+          <td>KSh {{ row.closing|floatformat:2|intcomma }}</td>
         </tr>
         {% endfor %}
         <tr class="font-bold bg-gray-50">
-          <td data-label="Branch">Total</td>
-          <td data-label="Opening Balance">KSh 0</td>
-          <td data-label="Sales">KSh {{ total_sales|floatformat:2|intcomma }}</td>
-          <td data-label="Closing Balance">KSh {{ total_sales|floatformat:2|intcomma }}</td>
+          <td>Total</td>
+          <td>KSh 0</td>
+          <td>KSh {{ total_sales|floatformat:2|intcomma }}</td>
+          <td>KSh {{ total_sales|floatformat:2|intcomma }}</td>
         </tr>
       </tbody>
     </table>
   </div>
   {% endif %}
-
   <!-- Alerts Section -->
-  <div class="card mb-8">
+  <div class="card mb-8" x-data="{ activeTab: 'low' }">
     <h3>Stock Alerts</h3>
     <div class="alert-tabs">
-      <button class="alert-tab active" data-tab="low">Low Stock ({{ low_stocks|length }})</button>
-      <button class="alert-tab" data-tab="expiry">Near Expiry ({{ near_expiries|length }})</button>
+      <button class="alert-tab" :class="{ 'active': activeTab === 'low' }" @click="activeTab = 'low'; $nextTick(() => { if (typeof $.fn.DataTable !== 'undefined' && $.fn.DataTable.isDataTable('#lowStockTable')) { $('#lowStockTable').DataTable().columns.adjust().responsive.recalc(); } })">Low Stock ({{ low_stocks|length }})</button>
+      <button class="alert-tab" :class="{ 'active': activeTab === 'expiry' }" @click="activeTab = 'expiry'; $nextTick(() => { if (typeof $.fn.DataTable !== 'undefined' && $.fn.DataTable.isDataTable('#expiryTable')) { $('#expiryTable').DataTable().columns.adjust().responsive.recalc(); } })">Near Expiry ({{ near_expiries|length }})</button>
     </div>
-    <div id="low-tab" class="tab-content">
+    <div x-show="activeTab === 'low'" x-transition class="tab-content">
       {% if low_stocks %}
       <div class="table-container">
-        <table>
+        <table id="lowStockTable" class="display" style="width:100%">
           <thead>
             <tr>
               <th>Product</th>
@@ -439,10 +475,10 @@
           <tbody>
             {% for stock in low_stocks %}
             <tr>
-              <td data-label="Product">{{ stock.product.name }}</td>
-              <td data-label="Branch">{{ stock.branch.name }}</td>
-              <td data-label="Quantity" class="text-red-600 font-bold">{{ stock.quantity }}</td>
-              <td data-label="Batch">{{ stock.batch }}</td>
+              <td>{{ stock.product.name }}</td>
+              <td>{{ stock.branch.name }}</td>
+              <td class="text-red-600 font-bold">{{ stock.quantity }}</td>
+              <td>{{ stock.batch }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -452,10 +488,10 @@
       <div class="no-data">No low stock alerts.</div>
       {% endif %}
     </div>
-    <div id="expiry-tab" class="tab-content" style="display: none;">
+    <div x-show="activeTab === 'expiry'" x-transition class="tab-content">
       {% if near_expiries %}
       <div class="table-container">
-        <table>
+        <table id="expiryTable" class="display" style="width:100%">
           <thead>
             <tr>
               <th>Product</th>
@@ -467,10 +503,10 @@
           <tbody>
             {% for stock in near_expiries %}
             <tr>
-              <td data-label="Product">{{ stock.product.name }}</td>
-              <td data-label="Branch">{{ stock.branch.name }}</td>
-              <td data-label="Expiry Date" class="text-red-600 font-bold">{{ stock.expiry_date|date:"M d, Y" }}</td>
-              <td data-label="Batch">{{ stock.batch }}</td>
+              <td>{{ stock.product.name }}</td>
+              <td>{{ stock.branch.name }}</td>
+              <td class="text-red-600 font-bold">{{ stock.expiry_date|date:"M d, Y" }}</td>
+              <td>{{ stock.batch }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -481,12 +517,11 @@
       {% endif %}
     </div>
   </div>
-
   <!-- Stock Report Table -->
   {% if stock_report %}
   <div class="table-container">
     <h3>Product Stock Turnover Report</h3>
-    <table>
+    <table id="stockReportTable" class="display" style="width:100%">
       <thead>
         <tr>
           <th>Product</th>
@@ -499,11 +534,11 @@
       <tbody>
         {% for item in stock_report %}
         <tr>
-          <td data-label="Product">{{ item.product_name }}</td>
-          <td data-label="Opening Qty">{{ item.opening }}</td>
-          <td data-label="Sold" class="font-semibold">{{ item.sold }}</td>
-          <td data-label="Closing Qty">{{ item.closing }}</td>
-          <td data-label="Turnover Ratio">{% if item.turnover > 1 %}<span class="text-green-600">{{ item.turnover|floatformat:2 }}</span>{% else %}{{ item.turnover|floatformat:2 }}{% endif %}</td>
+          <td>{{ item.product_name }}</td>
+          <td>{{ item.opening }}</td>
+          <td class="font-semibold">{{ item.sold }}</td>
+          <td>{{ item.closing }}</td>
+          <td>{% if item.turnover > 1 %}<span class="text-green-600">{{ item.turnover|floatformat:2 }}</span>{% else %}{{ item.turnover|floatformat:2 }}{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -513,79 +548,68 @@
   <div class="no-data">No stock report data available for the selected period.</div>
   {% endif %}
 </div>
-
+<!-- jQuery CDN -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" defer></script>
+<!-- DataTables CDN -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+<script type="text/javascript" src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js" defer></script>
+<script type="text/javascript" src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js" defer></script>
 <!-- Chart.js CDN (Async Load for Perf) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
-
+<!-- Alpine.js CDN -->
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script>
   // Render Lucide icons lazily (Perf Boost)
   if (typeof lucide !== 'undefined') {
     lucide.createIcons({lazy: true});
   }
-
-  // Tab switching for alerts
+  // Trigger animation
   document.addEventListener('DOMContentLoaded', () => {
-    const tabs = document.querySelectorAll('.alert-tab');
-    const contents = document.querySelectorAll('.tab-content');
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        contents.forEach(c => c.style.display = 'none');
-        tab.classList.add('active');
-        document.getElementById(`${tab.dataset.tab}-tab`).style.display = 'block';
-      });
-    });
-
-    // Custom date range toggle with native date picker enhancement
-    const dateRange = document.getElementById('date-range');
-    const startDate = document.getElementById('start_date');
-    const endDate = document.getElementById('end_date');
-    const startDiv = startDate ? startDate.closest('div') : null;
-    const endDiv = endDate ? endDate.closest('div') : null;
-    if (dateRange && startDiv && endDiv) {
-      const toggleDates = () => {
-        const showDates = dateRange.value === 'custom';
-        startDiv.style.display = showDates ? 'block' : 'none';
-        endDiv.style.display = showDates ? 'block' : 'none';
-        startDate.disabled = !showDates;
-        endDate.disabled = !showDates;
-        if (showDates && (!startDate.value || !endDate.value)) {
-          const today = new Date();
-          const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-          startDate.value = sevenDaysAgo.toISOString().split('T')[0];
-          endDate.value = today.toISOString().split('T')[0];
-        }
-      };
-      dateRange.addEventListener('change', toggleDates);
-      // Initial state
-      toggleDates();
-    }
-
-    // Trigger animation
     document.querySelector('.reports-container').style.opacity = '1';
-
     // Initialize Charts
     initializeCharts();
+    // Initialize DataTables
+    initializeDataTables();
   });
-
   function initializeCharts() {
-    const labels = [{% for d in daily_data %}'{{ d.date|date:"MMM dd" }}',{% endfor %}].filter(Boolean);
-    const salesData = [{% for d in daily_data %}{{ d.sales }},{% endfor %}].filter(Boolean);
-    const profitData = [{% for d in daily_data %}{{ d.profit }},{% endfor %}].filter(Boolean);
-
-    // Daily Sales Bar Chart
-    const dailyBarCtx = document.getElementById('dailySalesBar');
-    if (dailyBarCtx && labels.length > 0) {
-      new Chart(dailyBarCtx, {
-        type: 'bar',
+    // Collect and sort daily data chronologically
+    const rawData = [{% for d in daily_data %}{ sales: {{ d.sales }}, profit: {{ d.profit }}, date: '{{ d.date|date:"Y-m-d" }}', label: '{{ d.date|date:"MMM d" }}' },{% endfor %}].filter(Boolean);
+    const sortedData = rawData.sort((a, b) => new Date(a.date) - new Date(b.date));
+    let labels = sortedData.map(item => item.label);
+    const salesData = sortedData.map(item => item.sales);
+    const profitData = sortedData.map(item => item.profit);
+    // Process labels to avoid repeating month
+    const processedLabels = [];
+    if (labels.length > 0) {
+      let currentMonth = labels[0].split(' ')[0];
+      processedLabels.push(labels[0]);
+      for (let i = 1; i < labels.length; i++) {
+        const parts = labels[i].split(' ');
+        const thisMonth = parts[0];
+        if (thisMonth === currentMonth) {
+          processedLabels.push(parts[1]);
+        } else {
+          currentMonth = thisMonth;
+          processedLabels.push(labels[i]);
+        }
+      }
+    }
+    labels = processedLabels;
+    // Sales Trend Line Chart
+    const dailySalesCtx = document.getElementById('dailySalesLine');
+    if (dailySalesCtx && labels.length > 0) {
+      new Chart(dailySalesCtx, {
+        type: 'line',
         data: {
           labels: labels,
           datasets: [{
             label: 'Sales (KSh)',
             data: salesData,
-            backgroundColor: 'rgba(212, 175, 55, 0.8)',
             borderColor: 'rgb(212, 175, 55)',
-            borderWidth: 1
+            backgroundColor: 'rgba(212, 175, 55, 0.1)',
+            tension: 0.4,
+            fill: true
           }]
         },
         options: {
@@ -616,13 +640,21 @@
           scales: {
             y: {
               beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Sales (KSh)'
+              },
               ticks: {
                 callback: function(value) {
-                  return 'KSh ' + value.toLocaleString();
+                  return value.toLocaleString();
                 }
               }
             },
             x: {
+              title: {
+                display: true,
+                text: 'Date'
+              },
               ticks: {
                 maxRotation: 45,
                 minRotation: 0
@@ -632,8 +664,7 @@
         }
       });
     }
-
-    // Top 5 Most Selling Products Pie Chart
+    // 5 Most Selling Products Pie Chart
     {% if most_selling %}
     const mostLabels = [{% for m in most_selling %}'{{ m.product__name }}',{% endfor %}].filter(Boolean);
     const mostData = [{% for m in most_selling %}{{ m.total_revenue }},{% endfor %}].filter(Boolean);
@@ -661,7 +692,7 @@
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              position: 'right'
+              position: 'bottom'
             },
             tooltip: {
               backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -682,23 +713,84 @@
       });
     }
     {% endif %}
-
-    // Sales & Profit Trend Line Chart
-    const trendCtx = document.getElementById('trendLine');
-    if (trendCtx && labels.length > 0) {
-      new Chart(trendCtx, {
+    // Top Products by Turnover Bar Chart
+    const topTurnoverCtx = document.getElementById('topTurnover');
+    {% if stock_report %}
+    const rawTurnover = [{% for item in stock_report %}{name: '{{ item.product_name|escapejs }}', turnover: {{ item.turnover }} },{% endfor %}].filter(Boolean);
+    const top5 = rawTurnover.sort((a, b) => b.turnover - a.turnover).slice(0, 5);
+    const turnoverLabels = top5.map(item => item.name);
+    const turnoverData = top5.map(item => item.turnover);
+    if (topTurnoverCtx && turnoverLabels.length > 0) {
+      new Chart(topTurnoverCtx, {
+        type: 'bar',
+        data: {
+          labels: turnoverLabels,
+          datasets: [{
+            label: 'Turnover Ratio',
+            data: turnoverData,
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: 'white',
+              bodyColor: 'white',
+              borderColor: 'rgba(212, 175, 55, 0.5)',
+              borderWidth: 1,
+              cornerRadius: 8,
+              displayColors: false,
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Turnover Ratio'
+              },
+              ticks: {
+                callback: function(value) {
+                  return value.toFixed(2);
+                }
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Products'
+              },
+              ticks: {
+                maxRotation: 45,
+                minRotation: 0
+              }
+            }
+          }
+        }
+      });
+    }
+    {% endif %}
+    // Profit Trend Line Chart
+    const profitTrendCtx = document.getElementById('profitTrend');
+    if (profitTrendCtx && labels.length > 0) {
+      new Chart(profitTrendCtx, {
         type: 'line',
         data: {
           labels: labels,
           datasets: [
-            {
-              label: 'Sales (KSh)',
-              data: salesData,
-              borderColor: 'rgb(212, 175, 55)',
-              backgroundColor: 'rgba(212, 175, 55, 0.1)',
-              tension: 0.4,
-              fill: true
-            },
             {
               label: 'Profit (KSh)',
               data: profitData,
@@ -738,13 +830,21 @@
           scales: {
             y: {
               beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Profit (KSh)'
+              },
               ticks: {
                 callback: function(value) {
-                  return 'KSh ' + value.toLocaleString();
+                  return value.toLocaleString();
                 }
               }
             },
             x: {
+              title: {
+                display: true,
+                text: 'Date'
+              },
               ticks: {
                 maxRotation: 45,
                 minRotation: 0
@@ -754,6 +854,92 @@
         }
       });
     }
+  }
+  function initializeDataTables() {
+    if (typeof $.fn.DataTable === 'undefined') return;
+    // Initialize main tables
+    if ($.fn.DataTable.isDataTable('#branchTable')) {
+      $('#branchTable').DataTable().destroy();
+    }
+    $('#branchTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      searching: true,
+      ordering: true,
+      info: true,
+      lengthChange: false,
+      language: {
+        search: "Search branches:",
+        paginate: {
+          first: "First",
+          last: "Last",
+          next: "Next",
+          previous: "Previous"
+        }
+      }
+    });
+    // Initialize stock report table
+    if ($.fn.DataTable.isDataTable('#stockReportTable')) {
+      $('#stockReportTable').DataTable().destroy();
+    }
+    $('#stockReportTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      searching: true,
+      ordering: true,
+      info: true,
+      lengthChange: false,
+      language: {
+        search: "Search products:",
+        paginate: {
+          first: "First",
+          last: "Last",
+          next: "Next",
+          previous: "Previous"
+        }
+      }
+    });
+    // Initialize alerts tables (initially low stock)
+    if ($.fn.DataTable.isDataTable('#lowStockTable')) {
+      $('#lowStockTable').DataTable().destroy();
+    }
+    $('#lowStockTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      searching: true,
+      ordering: true,
+      info: true,
+      lengthChange: false,
+      language: {
+        search: "Search low stock:",
+        paginate: {
+          first: "First",
+          last: "Last",
+          next: "Next",
+          previous: "Previous"
+        }
+      }
+    });
+    if ($.fn.DataTable.isDataTable('#expiryTable')) {
+      $('#expiryTable').DataTable().destroy();
+    }
+    $('#expiryTable').DataTable({
+      responsive: true,
+      pageLength: 10,
+      searching: true,
+      ordering: true,
+      info: true,
+      lengthChange: false,
+      language: {
+        search: "Search expiries:",
+        paginate: {
+          first: "First",
+          last: "Last",
+          next: "Next",
+          previous: "Previous"
+        }
+      }
+    });
   }
 </script>
 {% endblock %}
