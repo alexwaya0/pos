@@ -62,7 +62,6 @@
       <option value="standard">Standard Printer</option>
     </select>
     <button onclick="printReceipt()" class="px-3 py-2 rounded bg-green-800 text-white">Print / Save PDF</button>
-    <a href="{% url 'pos:dashboard' %}" class="px-3 py-2 rounded bg-gray-200">Close</a>
   </div>
 </div>
 
@@ -114,12 +113,20 @@ function printReceipt() {
   .receipt-content {
     font-family: 'Courier New', Courier, monospace;
   }
+  /* Hide Django messages/flash containers for this template */
+  .flash-container,
+  .messages,
+  div.messages,
+  .alert,
+  .alerts {
+    display: none !important;
+  }
   @media print {
     @page {
       margin: 0.5cm;
     }
-    /* Hide headers, footers, and other non-receipt elements */
-    header, footer, nav, aside, .sidebar, .flash-container, .print-buttons, .page-title, h1 {
+    /* Hide headers, footers, and other non-receipt elements including messages */
+    header, footer, nav, aside, .sidebar, .flash-container, .messages, div.messages, .alert, .alerts, .print-buttons, .page-title, h1 {
       display: none !important;
     }
     /* Ensure receipt content takes full width and is visible */

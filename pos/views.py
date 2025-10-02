@@ -247,6 +247,8 @@ def sale_create(request):
 @login_required
 def receipt_view(request, sale_id):
     sale = get_object_or_404(Sale, pk=sale_id)
+    # Consume any pending messages to prevent them from displaying on this page
+    messages.get_messages(request)
     if request.method == 'POST':
         # Handle close action, redirect back to sale_create
         return redirect('pos:sale_create')

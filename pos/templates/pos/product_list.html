@@ -1,281 +1,644 @@
 {% extends 'pos/base.html' %}
+{% load humanize %}
+{% block title %}Products{% endblock %}
+{% block page_title %}Product Inventory{% endblock %}
 {% block content %}
 <style>
+  .dashboard-container {
+    animation: fadeSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  @keyframes fadeSlideIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
   .card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: none;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1);
     position: relative;
-    padding: 24px;
+    padding: 20px;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--gold), var(--darkgreen));
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
   .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 102, 102, 0.2);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 40px rgba(6, 68, 32, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
   }
-  /* Card-specific colors */
-  .card-products { background: linear-gradient(145deg, #E6F0FA, #D1E7F5); } /* Light teal */
-  .card-categories { background: linear-gradient(145deg, #E6F7F2, #CCEFE7); } /* Light green */
-  .card-expiry { background: linear-gradient(145deg, #FEF7E6, #F6E9CC); } /* Light gold */
-  .card-low-stock { background: linear-gradient(145deg, #F0E6F7, #E3D5EF); } /* Light purple */
+  .card:hover::before { opacity: 1; }
+  /* Card-specific colors - pharmacy-themed with advanced gradients */
+  .card-products { 
+    background: linear-gradient(145deg, #E6F0FA 0%, #D1E7F5 50%, rgba(209, 231, 245, 0.8) 100%); 
+    border: 1px solid rgba(37, 99, 235, 0.1);
+  }
+  .card-lowstock { 
+    background: linear-gradient(145deg, #FEF2F2 0%, #FEE2E2 50%, rgba(254, 226, 226, 0.8) 100%); 
+    border: 1px solid rgba(239, 68, 68, 0.1);
+  }
+  .card-price { 
+    background: linear-gradient(145deg, #F0FDF4 0%, #DCFCE7 50%, rgba(220, 252, 231, 0.8) 100%); 
+    border: 1px solid rgba(34, 197, 94, 0.1);
+  }
   .cta-link {
-    color: #006666; /* Teal */
+    color: var(--darkgreen);
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     position: absolute;
-    bottom: 16px;
-    right: 16px;
+    bottom: 12px;
+    right: 12px;
     display: flex;
     align-items: center;
-    transition: color 0.3s ease, transform 0.2s ease;
+    transition: all 0.3s ease;
+    text-decoration: none;
   }
   .cta-link:hover {
-    color: #1F7A5F; /* Jungle green */
-    transform: translateX(5px);
+    color: var(--gold);
+    transform: translateX(4px) scale(1.05);
   }
   .cta-icon {
-    width: 16px;
-    height: 16px;
-    fill: currentColor;
+    width: 14px;
+    height: 14px;
     margin-left: 4px;
+    transition: all 0.2s ease;
+  }
+  .cta-link:hover .cta-icon { transform: scale(1.1) rotate(10deg); }
+  .metric-icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+  }
+  .card:hover .metric-icon {
+    background: rgba(255, 255, 255, 0.9);
+    transform: scale(1.05);
+  }
+  .metric-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    margin: 0 0 4px 0;
+    line-height: 1.2;
+  }
+  .metric-value {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.1;
   }
   .table-container {
     background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 24px;
+    overflow-x: auto;
   }
   table {
     width: 100%;
     border-collapse: collapse;
+    min-width: 800px;
   }
   th, td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #f1f5f9;
   }
   th {
-    background-color: #006666;
+    background-color: var(--darkgreen);
     color: #ffffff;
     font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
   }
   tr:hover {
-    background-color: #f0f4f8;
+    background-color: #f8fafc;
+  }
+  tr.low-stock {
+    background-color: #fef2f2;
   }
   .sell-btn {
-    background-color: #D4A017;
-    color: #1a202c;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: var(--darkgreen);
     padding: 6px 12px;
-    border-radius: 6px;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
   }
   .sell-btn:hover {
-    background-color: #1F7A5F;
-    color: #ffffff;
-    transform: scale(1.05);
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+  }
+  .search-container {
+    position: relative;
+    margin-bottom: 16px;
   }
   input#search {
-    border: 1px solid #006666;
+    border: 1px solid var(--glass-border);
     border-radius: 8px;
-    padding: 8px;
+    padding: 12px 16px 12px 40px;
     width: 100%;
-    transition: border-color 0.3s ease;
+    transition: all 0.3s ease;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
   }
   input#search:focus {
-    border-color: #D4A017;
+    border-color: var(--gold);
     outline: none;
-    box-shadow: 0 0 5px rgba(212, 160, 23, 0.5);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
   }
   h3 {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
     font-weight: 600;
-    color: #006666;
+    color: var(--darkgreen);
+    margin: 0 0 8px 0;
   }
-  .icon {
-    width: 24px;
-    height: 24px;
-    fill: #006666;
+  .alert-badge {
+    background: #ef4444;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: bold;
+  }
+  .no-data {
+    text-align: center;
+    color: var(--muted);
+    padding: 40px;
+    font-style: italic;
+  }
+  /* Pagination Styles */
+  .pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pagination-controls select,
+  .pagination-controls button {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+  }
+  .pagination-controls button:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+  }
+  .pagination-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .pagination-controls label {
     margin-right: 8px;
+    font-size: 0.875rem;
+    color: #6b7280;
   }
-  .text-teal { color: #006666 !important; }
-  .text-jungle-green { color: #1F7A5F !important; }
-  .text-gold { color: #D4A017 !important; }
+  /* Sorting Styles */
+  .sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 20px;
+  }
+  .sortable:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  .sort-indicator {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8em;
+    opacity: 0.3;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .sorted .sort-indicator {
+    opacity: 1;
+  }
+  .sorted.asc .sort-indicator {
+    transform: translateY(-50%) rotate(0deg);
+    content: '↑';
+  }
+  .sorted.desc .sort-indicator {
+    transform: translateY(-50%) rotate(180deg);
+    content: '↓';
+  }
+  /* Filter Styles */
+  .filter-container {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .filter-container select {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: white;
+    font-size: 0.875rem;
+  }
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .card {
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .metric-icon {
+      width: 40px;
+      height: 40px;
+      margin-right: 8px;
+    }
+    .metric-value {
+      font-size: 1.5rem;
+    }
+    .metric-title {
+      font-size: 0.8rem;
+    }
+    .cta-link {
+      font-size: 0.8rem;
+      bottom: 8px;
+      right: 8px;
+    }
+    .pagination-controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .pagination-controls > div:first-child {
+      order: 2;
+    }
+    .pagination-controls #pageInfo {
+      order: 1;
+      text-align: center;
+    }
+    .pagination-controls > div:last-child {
+      order: 3;
+      justify-content: center;
+    }
+  }
+  @media (max-width: 480px) {
+    table {
+      min-width: 600px;
+    }
+    th, td {
+      padding: 8px 4px;
+      font-size: 0.875rem;
+    }
+    .sell-btn {
+      padding: 4px 8px;
+      font-size: 0.7rem;
+    }
+  }
 </style>
 
-<div class="container mx-auto">
-  <!-- Summary Cards -->
-  <!-- <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-    <div class="card card-products">
-      <div class="flex items-center mb-2">
-        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 6h-3V4c0-1.1-.9-2-2-2H9c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM9 4h6v2H9V4zm11 15H4V8h3v2h2V8h6v2h2V8h3v11z"/></svg>
-        <h3 class="text-gold">Total Products</h3>
+<div class="dashboard-container container mx-auto px-4">
+  <!-- Summary Cards Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Total Products Card -->
+    <div class="card card-products relative">
+      <div class="flex items-center mb-4">
+        <div class="metric-icon">
+          <i data-lucide="package" class="w-5 h-5 text-var(--darkgreen)"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="metric-title">Total Products</p>
+          <p class="metric-value text-var(--darkgreen)">{{ products|length|intcomma }}</p>
+        </div>
       </div>
-      <p class="text-2xl font-bold text-teal">{{ products|length }}</p>
-      <a href="#" class="cta-link" aria-label="View all products">
-        View
-        <svg class="cta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+      <a href="{% url 'pos:product_add' %}" class="cta-link" aria-label="Add new product">
+        Add Product
+        <i data-lucide="plus" class="cta-icon"></i>
       </a>
     </div>
-    <div class="card card-categories">
-      <div class="flex items-center mb-2">
-        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 5h16v2H4zm0 6h16v2H4zm0 6h16v2H4z"/></svg>
-        <h3 class="text-gold">Total Categories</h3>
-      </div>
-      <p class="text-2xl font-bold text-teal">{{ categories|length }}</p>
-      <a href="#" class="cta-link" aria-label="View all categories">
-        View
-        <svg class="cta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
-      </a>
-    </div>
-    <div class="card card-expiry">
-      <div class="flex items-center mb-2">
-        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-        <h3 class="text-gold">About to Expire</h3>
-      </div>
-      <p class="text-2xl font-bold text-teal">{{ near_expiries|length }}</p>
-      <a href="#" class="cta-link" aria-label="View expiring products">
-        View
-        <svg class="cta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
-      </a>
-    </div>
-    <div class="card card-low-stock">
-      <div class="flex items-center mb-2">
-        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>
-        <h3 class="text-gold">Low in Stock</h3>
-      </div>
-      <p class="text-2xl font-bold text-teal">{{ low_stocks|length }}</p>
-      <a href="#" class="cta-link" aria-label="View low stock products">
-        View
-        <svg class="cta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
-      </a>
-    </div>
-  </div> -->
 
-  <!-- Product Table -->
-  <div class="table-container">
-    <h3 class="mb-4 text-teal">Products</h3>
-    <div class="mb-4">
-      <input type="text" id="search" placeholder="Search products..." class="w-full">
+    <!-- Low Stock Alerts Card -->
+    <div class="card card-lowstock relative">
+      <div class="flex items-center mb-4">
+        <div class="metric-icon bg-red-100/80">
+          <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="metric-title">Low Stock Items</p>
+          <p class="metric-value text-red-600">0</p> <!-- Extend view to pass low_stock_count -->
+        </div>
+      </div>
+      <a href="?filter=low_stock" class="cta-link" aria-label="View low stock items">
+        View Low Stock
+        <i data-lucide="arrow-right" class="cta-icon"></i>
+      </a>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Category</th>
-          <th>Price (KES)</th>
-          <th>Min Price (KES)</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="product-table">
-        {% for product in products %}
-          <tr data-name="{{ product.name|lower }}">
-            <td>{{ product.name }}</td>
-            <td>{{ product.category }}</td>
-            <td>{{ product.price|floatformat:2 }}</td>
-            <td>{{ product.min_price|floatformat:2 }}</td>
-            <td>
-              <a href="{% url 'pos:sale_create' %}?product={{ product.id }}" class="sell-btn">Sell</a>
-            </td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="5" class="text-center text-gray-500">No products available</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+    <!-- Average Price Card -->
+    <div class="card card-price relative">
+      <div class="flex items-center mb-4">
+        <div class="metric-icon bg-green-100/80">
+          <i data-lucide="tag" class="w-5 h-5 text-green-600"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="metric-title">Avg. Selling Price</p>
+          <p class="metric-value text-green-600">KSh 0</p> <!-- Extend view to pass avg_price -->
+        </div>
+      </div>
+      <a href="#" class="cta-link" aria-label="View pricing details">
+        Details
+        <i data-lucide="arrow-right" class="cta-icon"></i>
+      </a>
+    </div>
   </div>
 
-  <!-- Role-Specific Data -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-    {% if role == 'cashier' %}
-      <div class="card card-products p-6">
-        <h3 class="text-gold">Today's Sales</h3>
-        <p class="text-sm text-gray-500">Total sales for {{ request.user.profile.branch.name }}</p>
-        <div class="mt-4 text-2xl font-bold text-teal">KES {{ today_sales|floatformat:2 }}</div>
+  <!-- Search and Filter Section -->
+  <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 gap-4">
+    <h3>Products List</h3>
+    <div style="width: 300px;">
+      <div class="search-container">
+        <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-gray-400 pointer-events-none"></i>
+        <input type="text" id="search" placeholder="Search by name or category..." aria-label="Search products">
       </div>
-      <div class="card card-products p-6">
-        <h3 class="text-gold">Low Stock Alerts</h3>
-        <p class="text-sm text-gray-500">Items below threshold</p>
-        <ul class="mt-4 text-sm text-jungle-green">
-          {% for batch in low_stocks %}
-            <li class="py-1">{{ batch.product.name }}: {{ batch.quantity }} units</li>
-          {% empty %}
-            <li class="py-1">No low stock items</li>
+    </div>
+    <div class="filter-container">
+      <label for="filterSelect" class="text-sm text-gray-600">Filter:</label>
+      <select id="filterSelect">
+        <option value="all">All Products</option>
+        <option value="low_stock">Low Stock</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Products Table -->
+  <div class="table-container">
+    {% if products %}
+      <table id="products-table">
+        <thead>
+          <tr>
+            <th class="sortable" data-column="name">Product <span class="sort-indicator">↕</span></th>
+            <th class="sortable" data-column="category">Category <span class="sort-indicator">↕</span></th>
+            <th>Description</th>
+            <th class="sortable" data-column="price">Selling Price <span class="sort-indicator">↕</span></th>
+            <th class="sortable" data-column="stock">Stock Level <span class="sort-indicator">↕</span></th>
+            <th class="sortable" data-column="min_price">Min Price <span class="sort-indicator">↕</span></th>
+            <th class="sortable" data-column="created">Created <span class="sort-indicator">↕</span></th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in products %}
+            {% with total_stock=0 %}
+              {% for stock in product.stocks.all %}
+                {% with total_stock=total_stock|add:stock.quantity %}{% endwith %}
+              {% empty %}
+                {% with total_stock=0 %}{% endwith %}
+              {% endfor %}
+              <tr 
+                data-sort-name="{{ product.name|lower }}" 
+                data-sort-category="{{ product.category|lower }}" 
+                data-sort-price="{{ product.price }}" 
+                data-sort-stock="{{ total_stock }}" 
+                data-sort-minprice="{{ product.min_price }}" 
+                data-sort-created="{{ product.created_at|date:'U' }}"
+                class="{% if total_stock <= 10 %}low-stock{% endif %}">
+                <td>{{ product.name }}</td>
+                <td>{{ product.category }}</td>
+                <td>{{ product.description|truncatechars:50 }}</td>
+                <td>KSh {{ product.price|floatformat:2 }}</td>
+                <td>
+                  {{ total_stock }}
+                  {% if total_stock <= 10 %}<span class="alert-badge ml-2">Low</span>{% endif %}
+                </td>
+                <td>KSh {{ product.min_price|floatformat:2 }}</td>
+                <td>{{ product.created_at|date:"M d, Y" }}</td>
+                <td>
+                  <button class="sell-btn" onclick="quickSell({{ product.id }})" aria-label="Quick sell {{ product.name }}">
+                    <i data-lucide="shopping-cart" class="w-3 h-3"></i>
+                    Sell
+                  </button>
+                </td>
+              </tr>
+              {% endwith %}
           {% endfor %}
-        </ul>
+        </tbody>
+      </table>
+      <div class="pagination-controls">
+        <div>
+          <label for="pageSize">Rows per page:</label>
+          <select id="pageSize">
+            <option value="10" selected>10</option>
+            <option value="25">25</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+        <div id="pageInfo" class="text-sm text-gray-500">Showing 1 to {{ products|length }} of {{ products|length }} entries</div>
+        <div class="flex gap-2">
+          <button id="prev" disabled>Previous</button>
+          <button id="next">Next</button>
+        </div>
       </div>
-      <div class="card card-products p-6">
-        <h3 class="text-gold">Expiry Warnings</h3>
-        <p class="text-sm text-gray-500">Items nearing expiry</p>
-        <ul class="mt-4 text-sm text-jungle-green">
-          {% for batch in near_expiries %}
-            <li class="py-1">{{ batch.product.name }}: {{ batch.expiry_date|date:"d/m/Y" }}</li>
-          {% empty %}
-            <li class="py-1">No expiring items</li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% elif role == 'manager' %}
-      <div class="card card-products p-6">
-        <h3 class="text-gold">Branch Sales Summary</h3>
-        <p class="text-sm text-gray-500">{{ request.user.profile.branch.name }}</p>
-        <div class="mt-4 text-2xl font-bold text-teal">KES {{ sales_summary|floatformat:2 }}</div>
-      </div>
-      <div class="card card-products p-6">
-        <h3 class="text-gold">Low Stock Alerts</h3>
-        <p class="text-sm text-gray-500">Items below threshold</p>
-        <ul class="mt-4 text-sm text-jungle-green">
-          {% for batch in low_stocks %}
-            <li class="py-1">{{ batch.product.name }}: {{ batch.quantity }} units</li>
-          {% empty %}
-            <li class="py-1">No low stock items</li>
-          {% endfor %}
-        </ul>
-      </div>
-      <div class="card card-products p-6">
-        <h3 class="text-gold">Expiry Warnings</h3>
-        <p class="text-sm text-gray-500">Items nearing expiry</p>
-        <ul class="mt-4 text-sm text-jungle-green">
-          {% for batch in near_expiries %}
-            <li class="py-1">{{ batch.product.name }}: {{ batch.expiry_date|date:"d/m/Y" }}</li>
-          {% empty %}
-            <li class="py-1">No expiring items</li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% elif role == 'admin' %}
-      {% for branch, total in branch_sales.items %}
-      <div class="card card-products p-6">
-        <h3 class="text-gold">{{ branch }}</h3>
-        <p class="text-sm text-gray-500">Total Sales</p>
-        <div class="mt-4 text-2xl font-bold text-teal">KES {{ total|floatformat:2 }}</div>
-      </div>
-      {% endfor %}
-      <div class="card card-products p-6">
-        <h3 class="text-gold">All Alerts</h3>
-        <p class="text-sm text-gray-500">Across all branches</p>
-        <ul class="mt-4 text-sm text-jungle-green">
-          {% for notification in notifications %}
-            <li class="py-1">{{ notification.message }} ({{ notification.created|date:"d/m/Y" }})</li>
-          {% empty %}
-            <li class="py-1">No active alerts</li>
-          {% endfor %}
-        </ul>
-      </div>
+    {% else %}
+      <div class="no-data">No products available. <a href="{% url 'pos:product_add' %}" class="text-var(--gold)">Add your first product?</a></div>
     {% endif %}
   </div>
 </div>
 
 <script>
-  // Search functionality for product table
-  document.getElementById('search').addEventListener('input', function(e) {
-    const term = e.target.value.toLowerCase();
-    document.querySelectorAll('#product-table tr').forEach(row => {
-      const name = row.dataset.name || '';
-      row.style.display = name.includes(term) ? '' : 'none';
-    });
+  // Render Lucide icons lazily
+  lucide.createIcons({lazy: true});
+
+  // Quick sell function
+  function quickSell(productId) {
+    window.location.href = `{% url 'pos:sale_create' %}?product=${productId}`;
+  }
+
+  // Dynamic Table Pagination/Sorting/Filter
+  document.addEventListener('DOMContentLoaded', () => {
+    // Trigger animation
+    document.querySelector('.dashboard-container').style.opacity = '1';
+
+    const searchInput = document.getElementById('search');
+    const filterSelect = document.getElementById('filterSelect');
+    const pageSizeSelect = document.getElementById('pageSize');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const pageInfo = document.getElementById('pageInfo');
+    const tableBody = document.querySelector('#products-table tbody');
+    
+    if (tableBody) {
+      const originalRows = Array.from(tableBody.querySelectorAll('tr'));
+      let currentRows = [...originalRows];
+      let currentPage = 1;
+      let sortColumn = 'name';
+      let sortDirection = 'asc';
+
+      function sortRows(column) {
+        currentRows.sort((a, b) => {
+          let aVal = a.dataset[`sort-${column}`] || '';
+          let bVal = b.dataset[`sort-${column}`] || '';
+          if (column === 'created') {
+            aVal = parseInt(aVal) || 0;
+            bVal = parseInt(bVal) || 0;
+          } else if (['price', 'stock', 'min_price'].includes(column)) {
+            aVal = parseFloat(aVal) || 0;
+            bVal = parseFloat(bVal) || 0;
+          } else {
+            aVal = aVal.toString().toLowerCase();
+            bVal = bVal.toString().toLowerCase();
+          }
+          if (aVal < bVal) {
+            return sortDirection === 'asc' ? -1 : 1;
+          } else if (aVal > bVal) {
+            return sortDirection === 'asc' ? 1 : -1;
+          } else {
+            return 0;
+          }
+        });
+      }
+
+      function updateHeaders() {
+        const headers = document.querySelectorAll('th[data-column]');
+        headers.forEach(th => {
+          th.classList.remove('sorted', 'asc', 'desc');
+          const indicator = th.querySelector('.sort-indicator');
+          if (indicator) indicator.textContent = '↕';
+        });
+        if (sortColumn) {
+          const activeHeader = document.querySelector(`th[data-column="${sortColumn}"]`);
+          if (activeHeader) {
+            activeHeader.classList.add('sorted', sortDirection);
+            const indicator = activeHeader.querySelector('.sort-indicator');
+            indicator.textContent = sortDirection === 'asc' ? '↑' : '↓';
+          }
+        }
+      }
+
+      function renderTable() {
+        const term = searchInput.value.toLowerCase();
+        const filter = filterSelect.value;
+        let filtered = currentRows.filter(row => {
+          const name = row.dataset['sort-name'] || '';
+          const category = row.dataset['sort-category'] || '';
+          const stock = parseInt(row.dataset['sort-stock']) || 0;
+          if (term && !name.includes(term) && !category.includes(term)) return false;
+          if (filter === 'low_stock' && stock > 10) return false;
+          return true;
+        });
+        
+        const pageSize = pageSizeSelect.value;
+        const rpp = pageSize === 'all' ? Infinity : parseInt(pageSize);
+        const totalFiltered = filtered.length;
+        let totalPages = rpp === Infinity ? 1 : Math.ceil(totalFiltered / rpp);
+        if (totalPages === 0) totalPages = 1;
+        
+        if (currentPage > totalPages) currentPage = totalPages;
+        
+        const start = (currentPage - 1) * rpp;
+        const end = start + rpp;
+        
+        // Hide all rows
+        originalRows.forEach(row => row.style.display = 'none');
+        
+        // Show relevant slice
+        const toShow = rpp === Infinity ? filtered : filtered.slice(start, end);
+        toShow.forEach(row => row.style.display = '');
+        
+        // Update page info
+        const showingFrom = totalFiltered === 0 ? 0 : start + 1;
+        const showingTo = Math.min(end, totalFiltered);
+        pageInfo.textContent = `Showing ${showingFrom} to ${showingTo} of ${totalFiltered} entries`;
+        
+        // Update buttons
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages || totalFiltered === 0;
+      }
+
+      // Initial sort and render
+      sortRows(sortColumn);
+      updateHeaders();
+      renderTable();
+
+      // Event listeners
+      let searchTimeout;
+      searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          currentPage = 1;
+          renderTable();
+        }, 300);
+      });
+
+      filterSelect.addEventListener('change', () => {
+        currentPage = 1;
+        renderTable();
+      });
+
+      pageSizeSelect.addEventListener('change', () => {
+        currentPage = 1;
+        renderTable();
+      });
+
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderTable();
+        }
+      });
+
+      nextBtn.addEventListener('click', () => {
+        currentPage++;
+        renderTable();
+      });
+
+      // Sorting event listener
+      document.addEventListener('click', (e) => {
+        const th = e.target.closest('th[data-column]');
+        if (!th) return;
+        const column = th.dataset.column;
+        if (column === 'actions') return;
+        if (sortColumn === column) {
+          sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortColumn = column;
+          sortDirection = 'asc';
+        }
+        sortRows(column);
+        updateHeaders();
+        currentPage = 1;
+        renderTable();
+      });
+
+      // Handle URL filter on load
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('filter') === 'low_stock') {
+        filterSelect.value = 'low_stock';
+        renderTable();
+      }
+    }
   });
 </script>
 {% endblock %}
