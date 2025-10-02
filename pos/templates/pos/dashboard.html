@@ -1,5 +1,3 @@
-#dashboard.html
-
 {% extends 'pos/base.html' %}
 {% load humanize %}
 {% block title %}Dashboard{% endblock %}
@@ -7,22 +5,24 @@
 {% block content %}
 <style>
   .dashboard-container {
-    animation: fadeSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    animation: fadeSlideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(20px);
   }
   @keyframes fadeSlideIn {
     to { opacity: 1; transform: translateY(0); }
   }
   .card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     border: none;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
     position: relative;
-    padding: 20px;
+    padding: 24px;
     overflow: hidden;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
   .card::before {
     content: '';
@@ -33,160 +33,156 @@
     height: 4px;
     background: linear-gradient(90deg, var(--gold), var(--darkgreen));
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.4s ease;
   }
   .card:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 12px 40px rgba(6, 68, 32, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 20px 48px rgba(6, 68, 32, 0.2), 0 4px 16px rgba(0, 0, 0, 0.12);
   }
   .card:hover::before { opacity: 1; }
-  /* Card-specific colors - pharmacy-themed with advanced gradients */
-  .card-products { 
-    background: linear-gradient(145deg, #E6F0FA 0%, #D1E7F5 50%, rgba(209, 231, 245, 0.8) 100%); 
-    border: 1px solid rgba(37, 99, 235, 0.1);
-  }
+  /* Enhanced Card-specific colors with deeper gradients and glass effects */
   .card-sales { 
-    background: linear-gradient(145deg, #FFF3E0 0%, #FFE0B2 50%, rgba(255, 224, 178, 0.8) 100%); 
-    border: 1px solid rgba(251, 146, 60, 0.1);
+    background: linear-gradient(145deg, rgba(255, 243, 224, 0.9) 0%, rgba(255, 224, 178, 0.8) 50%, rgba(255, 224, 178, 0.6) 100%); 
+    border: 1px solid rgba(251, 146, 60, 0.15);
   }
   .card-stock { 
-    background: linear-gradient(145deg, #E6F7F2 0%, #CCEFE7 50%, rgba(204, 239, 231, 0.8) 100%); 
+    background: linear-gradient(145deg, rgba(230, 247, 242, 0.9) 0%, rgba(204, 239, 231, 0.8) 50%, rgba(204, 239, 231, 0.6) 100%); 
     color: #065f46; 
-    border: 1px solid rgba(6, 95, 70, 0.1);
+    border: 1px solid rgba(6, 95, 70, 0.15);
   }
   .card-prescriptions { 
-    background: linear-gradient(145deg, #F0F9FF 0%, #E0F2FE 50%, rgba(224, 242, 254, 0.8) 100%); 
-    border: 1px solid rgba(59, 130, 246, 0.1);
+    background: linear-gradient(145deg, rgba(240, 249, 255, 0.9) 0%, rgba(224, 242, 254, 0.8) 50%, rgba(224, 242, 254, 0.6) 100%); 
+    border: 1px solid rgba(59, 130, 246, 0.15);
   }
   .cta-link {
     color: var(--darkgreen);
-    font-weight: 500;
-    font-size: 0.85rem;
+    font-weight: 600;
+    font-size: 0.875rem;
     position: absolute;
-    bottom: 12px;
-    right: 12px;
+    bottom: 16px;
+    right: 16px;
     display: flex;
     align-items: center;
     transition: all 0.3s ease;
     text-decoration: none;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 8px 12px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
   }
   .cta-link:hover {
     color: var(--gold);
-    transform: translateX(4px) scale(1.05);
+    transform: translateX(6px) scale(1.05);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
   .cta-icon {
-    width: 14px;
-    height: 14px;
-    margin-left: 4px;
+    width: 16px;
+    height: 16px;
+    margin-left: 6px;
     transition: all 0.2s ease;
   }
   .cta-link:hover .cta-icon { transform: scale(1.1) rotate(10deg); }
   .metric-icon {
-    width: 44px;
-    height: 44px;
-    background: rgba(255, 255, 255, 0.7);
-    border-radius: 12px;
+    width: 52px;
+    height: 52px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 12px;
+    margin-right: 16px;
     flex-shrink: 0;
-    transition: all 0.3s ease;
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: hidden;
   }
+  .metric-icon::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.6s;
+  }
+  .card:hover .metric-icon::after { left: 100%; }
   .card:hover .metric-icon {
-    background: rgba(255, 255, 255, 0.9);
-    transform: scale(1.05);
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.08) rotate(5deg);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   }
   .metric-title {
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     color: #6b7280;
     margin: 0 0 4px 0;
-    line-height: 1.2;
+    line-height: 1.3;
+    letter-spacing: 0.025em;
   }
   .metric-value {
-    font-size: 1.875rem;
-    font-weight: 700;
+    font-size: 2.25rem;
+    font-weight: 800;
     margin: 0;
     line-height: 1.1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   }
-  .table-container {
-    background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    padding: 24px;
-    overflow-x: auto;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 600px;
-  }
-  th, td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #f1f5f9;
-  }
-  th {
-    background-color: var(--darkgreen);
-    color: #ffffff;
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-  tr:hover {
-    background-color: #f8fafc;
-  }
-  .sell-btn {
-    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-    color: var(--darkgreen);
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    border: none;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+  .metric-subtitle {
     font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 4px;
+    font-style: italic;
   }
-  .sell-btn:hover {
-    transform: translateY(-1px) scale(1.05);
-    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+  .low-stock-list {
+    margin-top: 12px;
+    max-height: 80px;
+    overflow-y: auto;
   }
-  .search-container {
+  .low-stock-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 0.8rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  .low-stock-item:last-child {
+    border-bottom: none;
+  }
+  .low-stock-name {
+    color: #dc2626;
+    font-weight: 500;
+  }
+  .low-stock-qty {
+    color: #9ca3af;
+  }
+  .chart-container {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    padding: 28px;
+    margin-bottom: 28px;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.4s ease;
+  }
+  .chart-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+  }
+  .chart-wrapper {
     position: relative;
-    margin-bottom: 16px;
-  }
-  input#search {
-    border: 1px solid var(--glass-border);
-    border-radius: 8px;
-    padding: 12px 16px 12px 40px;
-    width: 100%;
-    transition: all 0.3s ease;
-    background: var(--glass-bg);
-    backdrop-filter: blur(10px);
-  }
-  input#search:focus {
-    border-color: var(--gold);
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+    height: 320px;
+    margin-top: 20px;
   }
   h3 {
-    font-size: 1.125rem;
-    font-weight: 600;
+    font-size: 1.25rem;
+    font-weight: 700;
     color: var(--darkgreen);
-    margin: 0 0 8px 0;
-  }
-  .alert-badge {
-    background: #ef4444;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: bold;
+    margin: 0 0 16px 0;
+    letter-spacing: -0.025em;
   }
   .no-data {
     text-align: center;
@@ -194,174 +190,64 @@
     padding: 40px;
     font-style: italic;
   }
-  /* Chart Styles */
-  .chart-container {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    padding: 24px;
-    margin-bottom: 24px;
-    backdrop-filter: blur(10px);
-  }
-  .chart-wrapper {
-    position: relative;
-    height: 300px;
-    margin-top: 16px;
-  }
-  /* Pagination Styles */
-  .pagination-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #e2e8f0;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .pagination-controls select,
-  .pagination-controls button {
-    padding: 8px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    background: white;
-    cursor: pointer;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-  }
-  .pagination-controls button:hover:not(:disabled) {
-    background: #f3f4f6;
-    border-color: #9ca3af;
-  }
-  .pagination-controls button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-  .pagination-controls label {
-    margin-right: 8px;
-    font-size: 0.875rem;
-    color: #6b7280;
-  }
-  /* Sorting Styles */
-  .sortable {
-    cursor: pointer;
-    user-select: none;
-    position: relative;
-    padding-right: 20px;
-  }
-  .sortable:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-  .sort-indicator {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.8em;
-    opacity: 0.3;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-  }
-  .sorted .sort-indicator {
-    opacity: 1;
-  }
-  .sorted.asc .sort-indicator {
-    transform: translateY(-50%) rotate(0deg);
-    content: '↑';
-  }
-  .sorted.desc .sort-indicator {
-    transform: translateY(-50%) rotate(180deg);
-    content: '↓';
-  }
-  /* Responsive adjustments */
+  /* Enhanced Responsive adjustments */
   @media (max-width: 768px) {
     .card {
-      padding: 16px;
-      margin-bottom: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
     }
     .metric-icon {
-      width: 40px;
-      height: 40px;
-      margin-right: 8px;
+      width: 48px;
+      height: 48px;
+      margin-right: 12px;
     }
     .metric-value {
-      font-size: 1.5rem;
+      font-size: 1.875rem;
     }
     .metric-title {
       font-size: 0.8rem;
     }
     .cta-link {
       font-size: 0.8rem;
-      bottom: 8px;
-      right: 8px;
+      bottom: 12px;
+      right: 12px;
+      padding: 6px 10px;
     }
     .chart-wrapper {
-      height: 250px;
-    }
-    .pagination-controls {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .pagination-controls > div:first-child {
-      order: 2;
-    }
-    .pagination-controls #pageInfo {
-      order: 1;
-      text-align: center;
-    }
-    .pagination-controls > div:last-child {
-      order: 3;
-      justify-content: center;
+      height: 280px;
     }
   }
   @media (max-width: 480px) {
-    table {
-      min-width: 500px;
+    .metric-value {
+      font-size: 1.5rem;
     }
-    th, td {
-      padding: 8px 4px;
-      font-size: 0.875rem;
+    .chart-wrapper {
+      height: 240px;
     }
-    .sell-btn {
-      padding: 4px 8px;
-      font-size: 0.7rem;
+    .low-stock-list {
+      max-height: 60px;
     }
   }
 </style>
 
 <div class="dashboard-container container mx-auto px-4">
-  <!-- Summary Cards Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <!-- Total Products Card -->
-    <div class="card card-products relative">
-      <div class="flex items-center mb-4">
-        <div class="metric-icon">
-          <i data-lucide="package" class="w-5 h-5 text-var(--darkgreen)"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="metric-title">Total Products</p>
-          <p class="metric-value text-var(--darkgreen)">{{ products|length|intcomma }}</p>
-        </div>
-      </div>
-      <a href="{% url 'pos:product_list' %}" class="cta-link" aria-label="View all products">
-        View All
-        <i data-lucide="arrow-right" class="cta-icon"></i>
-      </a>
-    </div>
-
+  <!-- Enhanced Summary Cards Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
     <!-- Today's Sales Card -->
     <div class="card card-sales relative">
-      <div class="flex items-center mb-4">
+      <div class="flex items-center mb-6">
         <div class="metric-icon bg-orange-100/80">
-          <i data-lucide="wallet" class="w-5 h-5 text-orange-600"></i>
+          <i data-lucide="trending-up" class="w-6 h-6 text-orange-600"></i>
         </div>
         <div class="flex-1 min-w-0">
           <p class="metric-title">Today's Sales</p>
           <p class="metric-value text-orange-600">KSh {{ today_sales|floatformat:0|intcomma }}</p>
+          <p class="metric-subtitle">Daily revenue</p>
         </div>
       </div>
       <a href="{% url 'pos:reports' %}" class="cta-link" aria-label="View sales report">
-        Details
-        <i data-lucide="arrow-right" class="cta-icon"></i>
+        View Report
+        <i data-lucide="file-text" class="cta-icon"></i>
       </a>
     </div>
 
@@ -369,122 +255,58 @@
     <div class="card card-stock relative">
       <div class="flex items-center mb-4">
         <div class="metric-icon bg-red-100/80">
-          <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600"></i>
+          <i data-lucide="alert-octagon" class="w-6 h-6 text-red-600"></i>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="metric-title">Low Stock</p>
+          <p class="metric-title">Low Stock Alerts</p>
           <p class="metric-value text-red-600">{{ low_stock_count|default:0 }}</p>
+          <p class="metric-subtitle">Items needing reorder</p>
         </div>
       </div>
+      {% if low_stocks %}
+      <div class="low-stock-list">
+        {% for stock in low_stocks|slice:":3" %}
+        <div class="low-stock-item">
+          <span class="low-stock-name">{{ stock.product.name }}</span>
+          <span class="low-stock-qty">{{ stock.quantity }} units</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
       <a href="{% url 'pos:product_list' %}?filter=low_stock" class="cta-link" aria-label="Reorder low stock items">
-        Reorder
-        <i data-lucide="arrow-right" class="cta-icon"></i>
+        Reorder Now
+        <i data-lucide="shopping-bag" class="cta-icon"></i>
       </a>
     </div>
 
     <!-- Today's Transactions Card -->
     <div class="card card-prescriptions relative">
-      <div class="flex items-center mb-4">
+      <div class="flex items-center mb-6">
         <div class="metric-icon bg-blue-100/80">
-          <i data-lucide="shopping-cart" class="w-5 h-5 text-blue-600"></i>
+          <i data-lucide="activity" class="w-6 h-6 text-blue-600"></i>
         </div>
         <div class="flex-1 min-w-0">
           <p class="metric-title">Today's Transactions</p>
           <p class="metric-value text-blue-600">{{ prescriptions_today|default:0 }}</p>
+          <p class="metric-subtitle">Completed sales</p>
         </div>
       </div>
       <a href="{% url 'pos:reports' %}" class="cta-link" aria-label="View transactions">
-        View Log
-        <i data-lucide="arrow-right" class="cta-icon"></i>
+        Full Log
+        <i data-lucide="list" class="cta-icon"></i>
       </a>
     </div>
   </div>
 
-  <!-- Charts Section -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+  <!-- Enhanced Charts Section -->
+  <div class="grid grid-cols-1 gap-6 mb-8">
     <!-- Sales Trend Line Chart -->
     <div class="chart-container">
-      <h3 class="mb-4">Sales Trend (Last 7 Days)</h3>
+      <h3>Sales Trend (Last 7 Days)</h3>
       <div class="chart-wrapper">
         <canvas id="salesChart"></canvas>
       </div>
     </div>
-
-    <!-- Stock Distribution Pie Chart -->
-    <div class="chart-container">
-      <h3 class="mb-4">Product Categories Distribution</h3>
-      <div class="chart-wrapper">
-        <canvas id="stockChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Recent Sales Table -->
-  <div class="table-container">
-    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 gap-4">
-      <h3>Recent Sales</h3>
-      <div class="search-container" style="width: 300px;">
-        <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-gray-400 pointer-events-none"></i>
-        <input type="text" id="search" placeholder="Search sales by product or customer..." aria-label="Search recent sales">
-      </div>
-    </div>
-    {% if recent_sales %}
-      <table id="sales-table">
-        <thead>
-          <tr>
-            <th class="sortable" data-column="product">Product <span class="sort-indicator">↕</span></th>
-            <th class="sortable" data-column="customer">Customer <span class="sort-indicator">↕</span></th>
-            <th class="sortable" data-column="qty">Qty <span class="sort-indicator">↕</span></th>
-            <th class="sortable" data-column="total">Total <span class="sort-indicator">↕</span></th>
-            <th class="sortable" data-column="date">Date <span class="sort-indicator">↕</span></th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for sale in recent_sales %}
-            {% with sale.items.first as first_item %}
-            <tr 
-              data-sort-product="{% if first_item %}{{ first_item.product.name|lower }}{% endif %}" 
-              data-sort-customer="{{ sale.customer.name|lower|default:'walk-in' }}" 
-              data-sort-qty="{% if first_item %}{{ first_item.qty }}{% else %}0{% endif %}" 
-              data-sort-total="{{ sale.total }}" 
-              data-sort-date="{{ sale.created_at|date:'U' }}">
-              <td>{% if first_item %}{{ first_item.product.name }}{% else %}N/A{% endif %}</td>
-              <td>{{ sale.customer.name|default:"Walk-in" }}</td>
-              <td>{% if first_item %}{{ first_item.qty }}{% else %}0{% endif %}</td>
-              <td>KSh {{ sale.total|floatformat:2 }}</td>
-              <td>{{ sale.created_at|date:"M d, Y H:i" }}</td>
-              <td>
-                {% if first_item %}
-                <button class="sell-btn" onclick="quickSell({{ first_item.product.id }})" aria-label="Quick sell {{ first_item.product.name }}">
-                  <i data-lucide="shopping-cart" class="w-3 h-3"></i>
-                  Sell Again
-                </button>
-                {% endif %}
-              </td>
-            </tr>
-            {% endwith %}
-          {% endfor %}
-        </tbody>
-      </table>
-      <div class="pagination-controls">
-        <div>
-          <label for="pageSize">Rows per page:</label>
-          <select id="pageSize">
-            <option value="10" selected>10</option>
-            <option value="25">25</option>
-            <option value="all">All</option>
-          </select>
-        </div>
-        <div id="pageInfo" class="text-sm text-gray-500">Showing 1 to {{ recent_sales|length }} of {{ recent_sales|length }} entries</div>
-        <div class="flex gap-2">
-          <button id="prev" disabled>Previous</button>
-          <button id="next">Next</button>
-        </div>
-      </div>
-    {% else %}
-      <div class="no-data">No recent sales. Start your first transaction!</div>
-    {% endif %}
   </div>
 </div>
 
@@ -495,18 +317,12 @@
   // Render Lucide icons lazily (Perf Boost)
   lucide.createIcons({lazy: true});
 
-  // Quick sell function (Placeholder)
-  function quickSell(productId) {
-    // Redirect to sale create with prefill
-    window.location.href = `{% url 'pos:sale_create' %}?product=${productId}`;
-  }
-
-  // Dynamic Charts and Table Pagination/Sorting (Load after DOM)
+  // Dynamic Charts (Load after DOM)
   document.addEventListener('DOMContentLoaded', () => {
     // Trigger animation
     document.querySelector('.dashboard-container').style.opacity = '1';
 
-    // Sales Trend Chart (Line)
+    // Enhanced Sales Trend Chart (Line) with smoother animations
     const salesCtx = document.getElementById('salesChart').getContext('2d');
     new Chart(salesCtx, {
       type: 'line',
@@ -516,212 +332,48 @@
           label: 'Revenue (KSh)',
           data: {{ sales_trend_data|safe }},  // From view
           borderColor: 'rgb(212, 175, 55)',
-          backgroundColor: 'rgba(212, 175, 55, 0.1)',
+          backgroundColor: 'rgba(212, 175, 55, 0.08)',
           tension: 0.4,
           fill: true,
-          borderWidth: 3,
+          borderWidth: 4,
           pointBackgroundColor: 'rgb(212, 175, 55)',
           pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointRadius: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { 
-            beginAtZero: true, 
-            grid: { color: 'rgba(0,0,0,0.05)' },
-            ticks: { color: '#6b7280' }
-          },
-          x: { 
-            grid: { display: false },
-            ticks: { color: '#6b7280' }
-          }
-        },
-        interaction: { intersect: false, mode: 'index' },
-        elements: { point: { hoverRadius: 8 } }
-      }
-    });
-
-    // Stock Pie Chart
-    {% if categories %}
-    const stockCtx = document.getElementById('stockChart').getContext('2d');
-    new Chart(stockCtx, {
-      type: 'pie',
-      data: {
-        labels: [{% for cat in categories %}'{{ cat.category }}',{% endfor %}],
-        datasets: [{
-          data: [{% for cat in categories %}{{ cat.count }},{% endfor %}],
-          backgroundColor: ['#D1E7F5', '#CCEFE7', '#E0F2FE', '#FFE0B2', '#F3E8FF', '#FEF3C7'],
-          borderWidth: 2,
-          borderColor: '#fff',
-          hoverOffset: 10
+          pointBorderWidth: 3,
+          pointRadius: 8,
+          pointHoverRadius: 10
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: { 
-          legend: { 
-            position: 'bottom',
-            labels: { 
-              padding: 20,
-              usePointStyle: true,
-              font: { size: 12 }
-            }
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleFont: { size: 14 },
+            bodyFont: { size: 12 },
+            cornerRadius: 8
           }
+        },
+        scales: {
+          y: { 
+            beginAtZero: true, 
+            grid: { color: 'rgba(0,0,0,0.03)' },
+            ticks: { color: '#6b7280', font: { size: 11 } }
+          },
+          x: { 
+            grid: { display: false },
+            ticks: { color: '#6b7280', font: { size: 11 } }
+          }
+        },
+        interaction: { intersect: false, mode: 'index' },
+        elements: { point: { hoverRadius: 10 } },
+        animation: {
+          duration: 2000,
+          easing: 'easeOutQuart'
         }
       }
     });
-    {% endif %}
-
-    // Table Pagination, Search, and Sorting
-    const searchInput = document.getElementById('search');
-    const pageSizeSelect = document.getElementById('pageSize');
-    const prevBtn = document.getElementById('prev');
-    const nextBtn = document.getElementById('next');
-    const pageInfo = document.getElementById('pageInfo');
-    const tableBody = document.querySelector('#sales-table tbody');
-    
-    if (tableBody) {
-      const originalRows = Array.from(tableBody.querySelectorAll('tr'));
-      let currentRows = [...originalRows];
-      let currentPage = 1;
-      let sortColumn = 'date';
-      let sortDirection = 'desc';
-
-      function sortRows(column) {
-        currentRows.sort((a, b) => {
-          let aVal = a.dataset[`sort-${column}`] || '';
-          let bVal = b.dataset[`sort-${column}`] || '';
-          if (column === 'date') {
-            aVal = parseInt(aVal) || 0;
-            bVal = parseInt(bVal) || 0;
-          } else if (column === 'qty' || column === 'total') {
-            aVal = parseFloat(aVal) || 0;
-            bVal = parseFloat(bVal) || 0;
-          } else {
-            aVal = aVal.toString().toLowerCase();
-            bVal = bVal.toString().toLowerCase();
-          }
-          if (aVal < bVal) {
-            return sortDirection === 'asc' ? -1 : 1;
-          } else if (aVal > bVal) {
-            return sortDirection === 'asc' ? 1 : -1;
-          } else {
-            return 0;
-          }
-        });
-      }
-
-      function updateHeaders() {
-        const headers = document.querySelectorAll('th[data-column]');
-        headers.forEach(th => {
-          th.classList.remove('sorted', 'asc', 'desc');
-          const indicator = th.querySelector('.sort-indicator');
-          if (indicator) indicator.textContent = '↕';
-        });
-        if (sortColumn) {
-          const activeHeader = document.querySelector(`th[data-column="${sortColumn}"]`);
-          if (activeHeader) {
-            activeHeader.classList.add('sorted', sortDirection);
-            const indicator = activeHeader.querySelector('.sort-indicator');
-            indicator.textContent = sortDirection === 'asc' ? '↑' : '↓';
-          }
-        }
-      }
-
-      function renderTable() {
-        const term = searchInput.value.toLowerCase();
-        const pageSize = pageSizeSelect.value;
-        const rpp = pageSize === 'all' ? Infinity : parseInt(pageSize);
-        
-        // Filter the current sorted rows
-        const filtered = currentRows.filter(row => {
-          const product = row.dataset['sort-product'] || '';
-          const customer = row.dataset['sort-customer'] || '';
-          return product.includes(term) || customer.includes(term);
-        });
-        
-        const totalFiltered = filtered.length;
-        let totalPages = rpp === Infinity ? 1 : Math.ceil(totalFiltered / rpp);
-        if (totalPages === 0) totalPages = 1;
-        
-        if (currentPage > totalPages) currentPage = totalPages;
-        
-        const start = (currentPage - 1) * rpp;
-        const end = start + rpp;
-        
-        // Hide all rows
-        originalRows.forEach(row => row.style.display = 'none');
-        
-        // Show relevant slice
-        const toShow = rpp === Infinity ? filtered : filtered.slice(start, end);
-        toShow.forEach(row => row.style.display = '');
-        
-        // Update page info
-        const showingFrom = totalFiltered === 0 ? 0 : start + 1;
-        const showingTo = Math.min(end, totalFiltered);
-        pageInfo.textContent = `Showing ${showingFrom} to ${showingTo} of ${totalFiltered} entries`;
-        
-        // Update buttons
-        prevBtn.disabled = currentPage === 1;
-        nextBtn.disabled = currentPage === totalPages || totalFiltered === 0;
-      }
-
-      // Initial sort and render
-      sortRows(sortColumn);
-      updateHeaders();
-      renderTable();
-
-      // Event listeners
-      let searchTimeout;
-      searchInput.addEventListener('input', (e) => {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-          currentPage = 1;
-          renderTable();
-        }, 300);
-      });
-
-      pageSizeSelect.addEventListener('change', () => {
-        currentPage = 1;
-        renderTable();
-      });
-
-      prevBtn.addEventListener('click', () => {
-        if (currentPage > 1) {
-          currentPage--;
-          renderTable();
-        }
-      });
-
-      nextBtn.addEventListener('click', () => {
-        currentPage++;
-        renderTable();
-      });
-
-      // Sorting event listener
-      document.addEventListener('click', (e) => {
-        const th = e.target.closest('th[data-column]');
-        if (!th) return;
-        const column = th.dataset.column;
-        if (column === 'actions') return;
-        if (sortColumn === column) {
-          sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-        } else {
-          sortColumn = column;
-          sortDirection = 'asc';
-        }
-        sortRows(column);
-        updateHeaders();
-        currentPage = 1;
-        renderTable();
-      });
-    }
   });
 </script>
 {% endblock %}
