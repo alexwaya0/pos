@@ -1,0 +1,82 @@
+{% load humanize %}
+<table>
+  <thead>
+    <tr>
+      <th>
+        <a href="?{% if sort_by == 'user' and order == 'asc' %}sort_by=user&order=desc{% else %}sort_by=user&order=asc{% endif %}&action_filter={{ action_filter }}&user_filter={{ user_filter }}&page=1" class="flex items-center">
+          User
+          {% if sort_by == 'user' %}
+            {% if order == 'asc' %}<i data-lucide="arrow-up" class="ml-1 w-4 h-4"></i>{% else %}<i data-lucide="arrow-down" class="ml-1 w-4 h-4"></i>{% endif %}
+          {% else %}
+            <i data-lucide="arrow-up-down" class="ml-1 w-4 h-4 opacity-50"></i>
+          {% endif %}
+        </a>
+      </th>
+      <th>
+        <a href="?{% if sort_by == 'timestamp' and order == 'asc' %}sort_by=timestamp&order=desc{% else %}sort_by=timestamp&order=asc{% endif %}&action_filter={{ action_filter }}&user_filter={{ user_filter }}&page=1" class="flex items-center">
+          Time
+          {% if sort_by == 'timestamp' %}
+            {% if order == 'asc' %}<i data-lucide="arrow-up" class="ml-1 w-4 h-4"></i>{% else %}<i data-lucide="arrow-down" class="ml-1 w-4 h-4"></i>{% endif %}
+          {% else %}
+            <i data-lucide="arrow-up-down" class="ml-1 w-4 h-4 opacity-50"></i>
+          {% endif %}
+        </a>
+      </th>
+      <th>
+        <a href="?{% if sort_by == 'action' and order == 'asc' %}sort_by=action&order=desc{% else %}sort_by=action&order=asc{% endif %}&action_filter={{ action_filter }}&user_filter={{ user_filter }}&page=1" class="flex items-center">
+          Action
+          {% if sort_by == 'action' %}
+            {% if order == 'asc' %}<i data-lucide="arrow-up" class="ml-1 w-4 h-4"></i>{% else %}<i data-lucide="arrow-down" class="ml-1 w-4 h-4"></i>{% endif %}
+          {% else %}
+            <i data-lucide="arrow-up-down" class="ml-1 w-4 h-4 opacity-50"></i>
+          {% endif %}
+        </a>
+      </th>
+      <th>
+        <a href="?{% if sort_by == 'ip_address' and order == 'asc' %}sort_by=ip_address&order=desc{% else %}sort_by=ip_address&order=asc{% endif %}&action_filter={{ action_filter }}&user_filter={{ user_filter }}&page=1" class="flex items-center">
+          IP Address
+          {% if sort_by == 'ip_address' %}
+            {% if order == 'asc' %}<i data-lucide="arrow-up" class="ml-1 w-4 h-4"></i>{% else %}<i data-lucide="arrow-down" class="ml-1 w-4 h-4"></i>{% endif %}
+          {% else %}
+            <i data-lucide="arrow-up-down" class="ml-1 w-4 h-4 opacity-50"></i>
+          {% endif %}
+        </a>
+      </th>
+      <th>User Agent</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for log in page_obj %}
+      <tr>
+        <td>{{ log.user.get_full_name|default:log.user.username }}</td>
+        <td>{{ log.timestamp|date:"H:i:s" }}</td>
+        <td class="{% if log.action == 'login' %}login-action{% else %}logout-action{% endif %}">{{ log.get_action_display }}</td>
+        <td>{{ log.ip_address|default:"N/A" }}</td>
+        <td>{{ log.user_agent|truncatechars:30|default:"N/A" }}</td>
+      </tr>
+    {% empty %}
+      <tr>
+        <td colspan="5" class="no-data">No login/logout activity today.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if page_obj.has_other_pages %}
+<nav aria-label="Activity logs pagination">
+  <ul class="pagination">
+    {% if page_obj.has_previous %}
+      <li><a href="?page={{ page_obj.previous_page_number }}&sort_by={{ sort_by }}&order={{ order }}&action_filter={{ action_filter }}&user_filter={{ user_filter }}">Previous</a></li>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+        <li class="active"><a href="?page={{ num }}&sort_by={{ sort_by }}&order={{ order }}&action_filter={{ action_filter }}&user_filter={{ user_filter }}">{{ num }}</a></li>
+      {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+        <li><a href="?page={{ num }}&sort_by={{ sort_by }}&order={{ order }}&action_filter={{ action_filter }}&user_filter={{ user_filter }}">{{ num }}</a></li>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+      <li><a href="?page={{ page_obj.next_page_number }}&sort_by={{ sort_by }}&order={{ order }}&action_filter={{ action_filter }}&user_filter={{ user_filter }}">Next</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}

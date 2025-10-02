@@ -6,9 +6,10 @@ from django.db import transaction
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.urls import reverse
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from decimal import Decimal
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Count, Min
+from django.core.paginator import Paginator
 from .models import Branch, Product, ProductStock, Customer, Sale, SaleItem, UserActivityLog
 from .forms import ProductForm, ProductStockForm, SaleCreateForm
 from datetime import timedelta, datetime
@@ -48,18 +49,75 @@ def dashboard(request):
     low_stock_threshold = 10
     expiry_days_threshold = 60
 
-    # Last 7 days for shared date range (used for sales and now logs)
-    end_date = today
-    start_date = end_date - timedelta(days=6)
-    period_start = timezone.datetime.combine(start_date, timezone.datetime.min.time()).replace(tzinfo=timezone.get_current_timezone())
-    period_end = timezone.datetime.combine(end_date, timezone.datetime.max.time()).replace(tzinfo=timezone.get_current_timezone())
+    # User activity logs for today only
+    period_start = timezone.datetime.combine(today, timezone.datetime.min.time()).replace(tzinfo=timezone.get_current_timezone())
+    period_end = timezone.datetime.combine(today, timezone.datetime.max.time()).replace(tzinfo=timezone.get_current_timezone())
+    
+    action_filter = request.GET.get('action_filter', 'all')
+    sort_by = request.GET.get('sort_by', 'timestamp')
+    order = request.GET.get('order', 'desc')
+    direction = '-' if order == 'desc' else ''
+    
+    if role == 'admin':
+        user_logs_qs = UserActivityLog.objects.filter(
+            timestamp__gte=period_start,
+            timestamp__lte=period_end
+        )
+        user_filter = request.GET.get('user_filter', '')
+        if user_filter:
+            user_logs_qs = user_logs_qs.filter(user__username__icontains=user_filter)
+        context['logs_title'] = "System Login/Logout Activity"
+        context['user_filter'] = user_filter
+    else:
+        user_logs_qs = UserActivityLog.objects.filter(
+            user=request.user,
+            timestamp__gte=period_start,
+            timestamp__lte=period_end
+        )
+        context['logs_title'] = "Today's Login/Logout Activity"
+        context['user_filter'] = ''
+    
+    if action_filter != 'all':
+        user_logs_qs = user_logs_qs.filter(action=action_filter)
+    
+    if role == 'admin':
+        if sort_by == 'user':
+            user_logs_qs = user_logs_qs.order_by(direction + 'user__username')
+        elif sort_by == 'timestamp':
+            user_logs_qs = user_logs_qs.order_by(direction + 'timestamp')
+        elif sort_by == 'action':
+            user_logs_qs = user_logs_qs.order_by(direction + 'action')
+        elif sort_by == 'ip_address':
+            user_logs_qs = user_logs_qs.order_by(direction + 'ip_address')
+        else:
+            user_logs_qs = user_logs_qs.order_by('-timestamp')
+    else:
+        if sort_by == 'timestamp':
+            user_logs_qs = user_logs_qs.order_by(direction + 'timestamp')
+        elif sort_by == 'action':
+            user_logs_qs = user_logs_qs.order_by(direction + 'action')
+        else:
+            user_logs_qs = user_logs_qs.order_by('-timestamp')
+    
+    paginator = Paginator(user_logs_qs, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context['page_obj'] = page_obj
+    context['sort_by'] = sort_by
+    context['order'] = order
+    context['action_filter'] = action_filter
 
-    # User activity logs for last 7 days
-    user_logs = UserActivityLog.objects.filter(
-        timestamp__gte=period_start,
-        timestamp__lte=period_end
-    ).order_by('-timestamp')[:20]
-    context['user_logs'] = user_logs
+    if request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest':
+        partial_context = {
+            'page_obj': page_obj,
+            'sort_by': sort_by,
+            'order': order,
+            'action_filter': action_filter,
+            'user_filter': context.get('user_filter', ''),
+            'role': role,
+        }
+        return render(request, "pos/dashboard_logs_partial.html", partial_context)
 
     if role in ['cashier', 'manager']:
         try:
@@ -77,19 +135,6 @@ def dashboard(request):
         )
         prescriptions_today = Sale.objects.filter(branch=branch, created_at__date=today).count()  # Proxy for prescriptions
 
-        # Last 7 days sales for chart
-        daily_sales = []
-        current_date = start_date
-        while current_date <= end_date:
-            day_sales = Sale.objects.filter(
-                branch=branch,
-                created_at__date=current_date
-            ).aggregate(total=Sum('total'))['total'] or 0
-            daily_sales.append(float(day_sales))
-            current_date += timedelta(days=1)
-        sales_trend_data = daily_sales  # For line chart
-        sales_labels = [d.strftime('%a') for d in (start_date + timedelta(n) for n in range(7))]
-
         recent_sales = Sale.objects.filter(branch=branch).select_related('branch', 'customer').prefetch_related('items__product').order_by('-created_at')[:10]
 
         context.update({
@@ -98,8 +143,6 @@ def dashboard(request):
             'near_expiries': near_expiries,
             'prescriptions_today': prescriptions_today,
             'low_stock_count': low_stocks.count(),
-            'sales_trend_data': sales_trend_data,
-            'sales_labels': sales_labels,
             'recent_sales': recent_sales,
         })
 
@@ -116,18 +159,6 @@ def dashboard(request):
         )
         prescriptions_today = Sale.objects.filter(created_at__date=today).count()
 
-        # Last 7 days sales for chart (all branches)
-        daily_sales = []
-        current_date = start_date
-        while current_date <= end_date:
-            day_sales = Sale.objects.filter(
-                created_at__date=current_date
-            ).aggregate(total=Sum('total'))['total'] or 0
-            daily_sales.append(float(day_sales))
-            current_date += timedelta(days=1)
-        sales_trend_data = daily_sales
-        sales_labels = [d.strftime('%a') for d in (start_date + timedelta(n) for n in range(7))]
-
         branches = Branch.objects.all()
         branch_sales = {
             b.name: Sale.objects.filter(branch=b).aggregate(total=Sum('total'))['total'] or 0
@@ -143,8 +174,6 @@ def dashboard(request):
             'near_expiries': near_expiries,
             'prescriptions_today': prescriptions_today,
             'low_stock_count': low_stocks.count(),
-            'sales_trend_data': sales_trend_data,
-            'sales_labels': sales_labels,
             'recent_sales': recent_sales,
         })
 
