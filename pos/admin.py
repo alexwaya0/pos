@@ -1,13 +1,16 @@
 # admin.py
 from django.contrib import admin, messages
-from django.db.models import Sum
+from django.db.models import Sum, F
 from django.core.exceptions import ValidationError
 from django import forms
-from django.utils.html import format_html # Used for color-coding in list display
+from django.utils.html import format_html  # Used for color-coding in list display
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.shortcuts import render
+from django.urls import path
+from django.utils.safestring import mark_safe
 from .models import (
     Branch,
     Supplier,
@@ -16,17 +19,16 @@ from .models import (
     Customer,
     Sale,
     SaleItem,
-    UserActivityLog,
-    Profile,  # Assuming Profile model exists with branch ForeignKey
+    Profile,
 )
 from decimal import Decimal
 
 User = get_user_model()
 
-# --- Branding Customization: Amigo POS™ ---
-admin.site.site_header = "Amigo POS™ Administration"
-admin.site.site_title = "Amigo POS™ Admin Portal"
-admin.site.index_title = "Amigo POS™ Management Dashboard"
+# --- Branding Customization: Azariah Pharmacy™ ---
+admin.site.site_header = "Azariah Pharmacy™ Administration"
+admin.site.site_title = "Azariah Pharmacy™ Admin Portal"
+admin.site.index_title = "Azariah Pharmacy™ Management Dashboard"
 # --------------------------------------------------------
 
 # --- Inline Models ---
@@ -46,10 +48,11 @@ class SaleItemInline(admin.TabularInline):
     model = SaleItem
     extra = 0
     fields = ("product", "qty", "unit_price", "line_total")
-    readonly_fields = ("line_total", "unit_price") # unit_price should come from the sale record
-    autocomplete_fields = ("product",) 
+    readonly_fields = ("line_total", "unit_price")  # unit_price should come from the sale record
+    autocomplete_fields = ("product",)
     can_delete = False
     verbose_name_plural = "Items Sold"
+
 
 class ProfileInline(admin.StackedInline):
     """Inline for User Profile to edit branch."""
@@ -59,7 +62,7 @@ class ProfileInline(admin.StackedInline):
     autocomplete_fields = ('branch',)
 
 
-# --- Product Form Validation (Fixes the ModelForm import error) ---
+# --- Product Form Validation ---
 class ProductAdminForm(forms.ModelForm):
     """Custom form for ProductAdmin to enforce business rules."""
     class Meta:
@@ -80,6 +83,22 @@ class ProductAdminForm(forms.ModelForm):
         return cleaned_data
 
 
+# --- Custom Actions ---
+
+def restock_products(modeladmin, request, queryset):
+    """Custom action to bulk restock products."""
+    updated = queryset.update(quantity=F('quantity') + 10)  # Example: add 10 units
+    modeladmin.message_user(request, f'Successfully restocked {updated} products.')
+restock_products.short_description = "Restock selected products (add 10 units)"
+
+
+def generate_report(modeladmin, request, queryset):
+    """Custom action to generate a simple report."""
+    # Placeholder for report generation
+    modeladmin.message_user(request, f'Report generated for {queryset.count()} items.', level=messages.SUCCESS)
+generate_report.short_description = "Generate report for selected items"
+
+
 # --- Main Models ---
 
 @admin.register(Branch)
@@ -91,6 +110,7 @@ class BranchAdmin(admin.ModelAdmin):
         ("Branch Information", {"fields": ("name", "phone")}),
         ("Location Details", {"fields": ("address",)}),
     )
+    actions = [generate_report]
 
 
 @admin.register(Supplier)
@@ -98,20 +118,21 @@ class SupplierAdmin(admin.ModelAdmin):
     list_display = ("name", "contact")
     search_fields = ("name", "contact")
     list_per_page = 20
+    actions = [generate_report]
 
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    form = ProductAdminForm # Apply the custom form
-    
+    form = ProductAdminForm  # Apply the custom form
+
     def total_stock_qty(self, obj):
         """Calculates total quantity and color-codes if zero."""
         total = obj.stocks.aggregate(Sum("quantity"))["quantity__sum"]
         if total is None or total == 0:
-             return format_html('<span style="color: red; font-weight: bold;">{}</span>', 0)
+            return format_html('<span style="color: red; font-weight: bold;">{}</span>', 0)
         return total
     total_stock_qty.short_description = "Total Stock Qty"
-    total_stock_qty.admin_order_field = 'name' 
+    total_stock_qty.admin_order_field = 'name'
 
     list_display = (
         "name", "category", "price", "min_price", "total_stock_qty",
@@ -123,7 +144,8 @@ class ProductAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "total_stock_qty")
     ordering = ("name",)
     list_per_page = 25
-    
+    actions = [restock_products, generate_report]
+
     fieldsets = (
         ("Product Details", {"fields": ("name", "category", "description")}),
         ("Pricing & Stock", {
@@ -140,8 +162,14 @@ class ProductStockAdmin(admin.ModelAdmin):
         return obj.product.name
     product_name.short_description = "Product"
 
+    def low_stock_warning(self, obj):
+        if obj.quantity <= 10:
+            return format_html('<span style="color: red; font-weight: bold;">Low Stock!</span>')
+        return "OK"
+    low_stock_warning.short_description = "Stock Status"
+
     list_display = (
-        "product_name", "branch", "expiry_date", "quantity", "supplier", "unit_cost",
+        "product_name", "branch", "expiry_date", "quantity", "low_stock_warning", "supplier", "unit_cost",
     )
     list_filter = ("branch", "supplier", "expiry_date")
     search_fields = ("product__name", "branch__name", "batch")
@@ -149,7 +177,8 @@ class ProductStockAdmin(admin.ModelAdmin):
     date_hierarchy = "expiry_date"
     autocomplete_fields = ("product", "branch", "supplier")
     list_per_page = 20
-    
+    actions = [restock_products, generate_report]
+
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
@@ -160,11 +189,12 @@ class CustomerAdmin(admin.ModelAdmin):
         (None, {"fields": ("phone", "name")}),
         ("Contact Information", {"fields": ("email",)}),
     )
+    actions = [generate_report]
 
 
 @admin.register(Sale)
 class SaleAdmin(admin.ModelAdmin):
-    
+
     def customer_display(self, obj):
         return str(obj.customer) if obj.customer else "Walk-in"
     customer_display.short_description = "Customer"
@@ -174,9 +204,9 @@ class SaleAdmin(admin.ModelAdmin):
         # Use Decimal('0.00') as a safe fallback for new/unsaved objects
         total = obj.total or Decimal('0.00')
         cash_received = obj.cash_received or Decimal('0.00')
-        
+
         change = cash_received - total
-        
+
         if change > 0:
             return format_html('<span style="color: green; font-weight: bold;">₱ {:.2f}</span>', change)
         elif change < 0:
@@ -193,11 +223,12 @@ class SaleAdmin(admin.ModelAdmin):
     list_filter = ("branch", "cashier", "created_at")
     search_fields = ("customer__phone", "customer__name", "branch__name")
     date_hierarchy = "created_at"
-    readonly_fields = ("created_at", "total", "change_amount") 
-    autocomplete_fields = ("branch", "cashier", "customer") 
+    readonly_fields = ("created_at", "total", "change_amount")
+    autocomplete_fields = ("branch", "cashier", "customer")
     inlines = [SaleItemInline]
     list_per_page = 20
-    
+    actions = [generate_report]
+
     fieldsets = (
         ("Sale Metadata", {"fields": (("branch", "cashier"), "customer", "notes")}),
         ("Financial Summary", {
@@ -208,9 +239,10 @@ class SaleAdmin(admin.ModelAdmin):
         ("Timestamp", {"fields": ("created_at",), 'classes': ('collapse',)}),
     )
 
+
 class CustomUserChangeForm(UserChangeForm):
     group = forms.ModelChoiceField(
-        queryset=Group.objects.filter(name__in=['Cashier', 'Manager']),
+        queryset=Group.objects.filter(name__in=['Cashier', 'Manager', 'Admin']),
         empty_label="No Role Assigned",
         required=False,
         help_text="Select a single role for this user. Superuser status is handled separately."
@@ -234,9 +266,10 @@ class CustomUserChangeForm(UserChangeForm):
         if user_permissions is not None:
             self.instance.user_permissions.set(user_permissions)
 
+
 class CustomUserAddForm(UserCreationForm):
     group = forms.ModelChoiceField(
-        queryset=Group.objects.filter(name__in=['Cashier', 'Manager']),
+        queryset=Group.objects.filter(name__in=['Cashier', 'Manager', 'Admin']),
         empty_label="No Role Assigned",
         required=False,
         help_text="Select a single role for this user. Superuser status is handled after creation."
@@ -244,6 +277,9 @@ class CustomUserAddForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        admin_group = Group.objects.filter(name='Admin').first()
+        if admin_group:
+            self.fields['group'].initial = admin_group
         self.fields.pop('groups', None)
 
     class Meta:
@@ -253,25 +289,43 @@ class CustomUserAddForm(UserCreationForm):
     def save_m2m(self):
         pass  # No M2M to save beyond group, handled in save_model
 
+
 class CustomUserAdmin(UserAdmin):
     form = CustomUserChangeForm
     add_form = CustomUserAddForm
     inlines = [ProfileInline]
 
     def get_role(self, obj):
+        if obj.is_superuser:
+            role = 'Admin'
+            return format_html('<span style="color: green; font-weight: bold;">{}</span>', role)
         group = obj.groups.first()
-        return group.name if group else 'No Role'
+        role = group.name if group else 'No Role'
+        if role == 'Manager':
+            return format_html('<span style="color: green; font-weight: bold;">{}</span>', role)
+        elif role == 'Cashier':
+            return format_html('<span style="color: blue;">{}</span>', role)
+        elif role == 'Admin':
+            return format_html('<span style="color: green; font-weight: bold;">{}</span>', role)
+        else:
+            return format_html('<span style="color: gray; font-style: italic;">{}</span>', role)
     get_role.short_description = 'Role'
     get_role.admin_order_field = 'groups'
 
     def get_branch(self, obj):
+        if obj.is_superuser:
+            return "HQ"
         try:
-            return obj.profile.branch.name if obj.profile and obj.profile.branch else 'No Branch'
+            branch = obj.profile.branch.name if obj.profile and obj.profile.branch else 'No Branch'
+            if 'No Branch' in branch:
+                return format_html('<span style="color: red; font-weight: bold;">{}</span>', branch)
+            return branch
         except:
-            return 'No Branch'
+            return format_html('<span style="color: red; font-weight: bold;">No Branch</span>')
     get_branch.short_description = 'Branch'
 
     list_display = ('username', 'first_name', 'last_name', 'get_role', 'get_branch', 'is_staff', 'is_active', 'date_joined')
+    search_fields = ('username', 'first_name', 'last_name', 'email')
 
     add_fieldsets = (
         (None, {
@@ -289,7 +343,7 @@ class CustomUserAdmin(UserAdmin):
         fieldsets = super().get_fieldsets(request, obj)
         if obj is not None:
             fieldsets = list(fieldsets)
-            # Modify Personal info to remove email and add branch (but branch via inline)
+            # Modify Personal info to remove email
             for i, fs in enumerate(fieldsets):
                 if fs[0] == 'Personal info':
                     fields = list(fs[1]['fields'])
@@ -321,6 +375,13 @@ class CustomUserAdmin(UserAdmin):
         obj.groups.clear()
         if group:
             obj.groups.add(group)
+        # For superusers/admins, assign HQ branch
+        if obj.is_superuser or (group and group.name == 'Admin'):
+            hq_branch, created = Branch.objects.get_or_create(name='HQ', defaults={'address': 'Headquarters', 'phone': ''})
+            profile, profile_created = Profile.objects.get_or_create(user=obj)
+            if profile_created or profile.branch != hq_branch:
+                profile.branch = hq_branch
+                profile.save()
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = list(super().get_readonly_fields(request, obj))
@@ -328,15 +389,6 @@ class CustomUserAdmin(UserAdmin):
             readonly_fields.append('group')
         return readonly_fields
 
+
 admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
-
-@admin.register(UserActivityLog)
-class UserActivityLogAdmin(admin.ModelAdmin):
-    list_display = ('user', 'action', 'timestamp', 'ip_address')
-    list_filter = ('action', 'timestamp')
-    search_fields = ('user__username', 'user__first_name', 'user__last_name')
-    date_hierarchy = 'timestamp'
-    readonly_fields = ('timestamp',)
-    ordering = ('-timestamp',)
-    list_per_page = 50

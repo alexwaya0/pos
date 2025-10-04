@@ -1,0 +1,328 @@
+<!-- templates/admin/base_site.html -->
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block theme-toggle %}
+    {# Remove dark/light mode toggle completely #}
+{% endblock %}
+
+{% block extrahead %}
+<link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/8279/8279117.png">
+<style>
+    /* Enhanced Azariah Pharmacy™ Theme - Accessibility-Focused with Responsive Grids */
+    body {
+        background: #E2EAF4; /* Specified light blue-gray background */
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #333333; /* Dark text for contrast */
+    }
+    
+    /* Header - Subtle teal accent */
+    .header {
+        background: #f0f4f8; /* Light variant of background for header */
+        border-bottom: 2px solid #00695C; /* Dark teal border for branding */
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .header > .header-right > .header-link > img {
+        filter: none; /* Natural icon */
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(0, 105, 92, 0.3);
+    }
+    
+    #branding h1 a {
+        color: #00695C !important; /* Dark teal text for branding */
+        font-weight: bold;
+        text-shadow: none;
+    }
+    
+    /* Module and App List - High contrast on background, subtle shadows */
+    .module h2 {
+        background: #00695C !important; /* Dark teal header */
+        color: #ffffff !important; /* White text for contrast */
+        padding: 10px 15px !important;
+        border-radius: 4px 4px 0 0 !important;
+        margin: -1px -1px 0 -1px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        font-size: 1em;
+    }
+    
+    .module {
+        border: 1px solid #bdc3c7;
+        border-radius: 4px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 15px;
+        background: #ffffff;
+    }
+    
+    .module caption h2 {
+        background: #00695C !important;
+        color: #ffffff !important;
+    }
+    
+    /* Table - Responsive Grid Layout, neutral colors */
+    .results {
+        border: 1px solid #bdc3c7;
+        border-radius: 4px;
+        overflow: hidden;
+        background: #ffffff;
+    }
+    
+    table#result_list {
+        width: 100%;
+        border-collapse: collapse;
+        background: #ffffff;
+    }
+    
+    table#result_list th {
+        background: #E2EAF4; /*  Neutral grey header */
+        color: #2c3e50;
+        padding: 10px 8px;
+        font-weight: 600;
+        text-align: left;
+        border-bottom: 2px solid #7f8c8d;
+    }
+    
+    table#result_list td {
+        padding: 10px 8px;
+        border-bottom: 1px solid #bdc3c7;
+        color: #333333;
+    }
+    
+    table#result_list tr:hover {
+        background: #ecf0f1; /* Light grey hover */
+    }
+    
+    table#result_list tr:nth-child(even) {
+        background: #f8f9fa; /* Subtle alternating rows */
+    }
+    
+    /* Responsive Grid for Tables on Mobile */
+    @media (max-width: 768px) {
+        .results table#result_list, .results thead, .results tbody, .results th, .results td, .results tr {
+            display: block;
+        }
+        
+        .results thead tr {
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+        }
+        
+        .results tr {
+            border: 1px solid #bdc3c7;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            padding: 10px;
+            background: #ffffff;
+            display: grid;
+            grid-template-columns: 1fr 2fr; /* Simple 2-column grid for mobile */
+            gap: 10px;
+        }
+        
+        .results td {
+            border: none;
+            position: relative;
+            padding-left: 50%;
+            white-space: normal;
+            text-align: right;
+            font-size: 0.9em;
+        }
+        
+        .results td:before {
+            content: attr(data-label) ": ";
+            position: absolute;
+            left: 6px;
+            width: 45%;
+            padding-right: 10px;
+            white-space: nowrap;
+            text-align: left;
+            font-weight: bold;
+            color: #00695C; /* Dark teal for labels */
+        }
+        
+        /* Add data-label to td elements via JS or server-side if needed */
+    }
+    
+    /* Form Styling - Clean and Accessible on Background */
+    .changelist-form-container {
+        background-color: #ffffff;
+        border: 1px solid #bdc3c7;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 2fr; /* Responsive form grid */
+        gap: 15px;
+        margin-bottom: 15px;
+        align-items: end;
+    }
+    
+    .field-box {
+        border: 1px solid #bdc3c7;
+        border-radius: 4px;
+        padding: 10px;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .field-box label {
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    
+    /* Responsive Form Grid on Mobile */
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+    }
+    
+    /* Button and Input - High Contrast with Dark Teal */
+    .button, input[type=submit], input[type=button], .default {
+        background: #00695C !important; /* Dark teal buttons */
+        border: 1px solid #00695C !important;
+        color: #ffffff !important;
+        border-radius: 4px !important;
+        padding: 8px 16px !important;
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+        transition: background-color 0.3s ease;
+    }
+    
+    .button:hover, input[type=submit]:hover, input[type=button]:hover, .default:hover {
+        background: #004d40 !important; /* Darker teal hover */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    input[type="text"], input[type="password"], select, textarea {
+        border: 1px solid #bdc3c7;
+        border-radius: 4px;
+        padding: 8px;
+        background: #ffffff;
+        color: #333333;
+        transition: border-color 0.3s ease;
+    }
+    
+    input[type="text"]:focus, input[type="password"]:focus, select:focus, textarea:focus {
+        border-color: #00695C;
+        box-shadow: 0 0 0 0.2rem rgba(0, 105, 92, 0.25);
+        outline: none;
+    }
+    
+    /* Messages - High Contrast */
+    .messagelist .success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    .messagelist .error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+    
+    /* Pagination - Clean on Background */
+    .pagination {
+        background: #ffffff;
+        border: 1px solid #bdc3c7;
+        border-radius: 4px;
+        padding: 10px;
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+    }
+    
+    .pagination a, .pagination span {
+        color: #00695C !important;
+        border: 1px solid #bdc3c7;
+        border-radius: 4px;
+        padding: 8px 12px;
+        text-decoration: none;
+        background: #ffffff;
+        transition: background-color 0.3s ease;
+    }
+    
+    .pagination a:hover {
+        background: #ecf0f1;
+    }
+    
+    /* Collapsed Fieldsets - Subtle on Background */
+    .module.collapsed h2 {
+        border-radius: 4px !important;
+    }
+    
+    .module.collapsed {
+        border-color: #bdc3c7;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Inline Forms - Grid Layout on Background */
+    .inline-group {
+        border: 1px solid #bdc3c7;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 15px;
+    }
+    
+    .inline-related {
+        background: #f8f9fa;
+        border-bottom: 1px solid #bdc3c7;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 10px;
+        padding: 10px;
+    }
+    
+    /* Responsive Inline Grid on Mobile */
+    @media (max-width: 768px) {
+        .inline-related {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* General Responsive Adjustments */
+    @media (max-width: 768px) {
+        .module h2 {
+            font-size: 0.95em;
+            padding: 8px 10px;
+        }
+        
+        table#result_list th, table#result_list td {
+            padding: 8px 4px;
+            font-size: 0.9em;
+        }
+        
+        .changelist-form-container {
+            padding: 10px;
+        }
+    }
+</style>
+
+{{ block.super }}
+    <style>
+        :root {
+            color-scheme: light;
+        }
+        body[data-theme="dark"] {
+            background-color: #fff !important;
+            color: #000 !important;
+        }
+    </style>
+    <script>
+        // Force light mode by default
+        document.addEventListener("DOMContentLoaded", function() {
+            document.body.setAttribute("data-theme", "light");
+            localStorage.setItem("django.theme", "light"); // overwrite stored preference
+        });
+    </script>
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">Azariah Pharmacy™</a></h1>
+{% endblock %}
