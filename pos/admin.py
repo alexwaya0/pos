@@ -6,6 +6,8 @@ from django import forms
 from django.utils.html import format_html # Used for color-coding in list display
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import Group
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from .models import (
     Branch,
     Supplier,
@@ -15,6 +17,7 @@ from .models import (
     Sale,
     SaleItem,
     UserActivityLog,
+    Profile,  # Assuming Profile model exists with branch ForeignKey
 )
 from decimal import Decimal
 
@@ -47,6 +50,13 @@ class SaleItemInline(admin.TabularInline):
     autocomplete_fields = ("product",) 
     can_delete = False
     verbose_name_plural = "Items Sold"
+
+class ProfileInline(admin.StackedInline):
+    """Inline for User Profile to edit branch."""
+    model = Profile
+    extra = 0
+    fields = ('branch',)
+    autocomplete_fields = ('branch',)
 
 
 # --- Product Form Validation (Fixes the ModelForm import error) ---
@@ -198,35 +208,125 @@ class SaleAdmin(admin.ModelAdmin):
         ("Timestamp", {"fields": ("created_at",), 'classes': ('collapse',)}),
     )
 
+class CustomUserChangeForm(UserChangeForm):
+    group = forms.ModelChoiceField(
+        queryset=Group.objects.filter(name__in=['Cashier', 'Manager']),
+        empty_label="No Role Assigned",
+        required=False,
+        help_text="Select a single role for this user. Superuser status is handled separately."
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance:
+            group = self.instance.groups.first()
+            if group:
+                self.initial['group'] = group
+        self.fields.pop('groups', None)
+
+    class Meta:
+        model = User
+        fields = UserChangeForm.Meta.fields
+
+    def save_m2m(self):
+        # Handle only user_permissions
+        user_permissions = self.cleaned_data.get('user_permissions')
+        if user_permissions is not None:
+            self.instance.user_permissions.set(user_permissions)
+
+class CustomUserAddForm(UserCreationForm):
+    group = forms.ModelChoiceField(
+        queryset=Group.objects.filter(name__in=['Cashier', 'Manager']),
+        empty_label="No Role Assigned",
+        required=False,
+        help_text="Select a single role for this user. Superuser status is handled after creation."
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields.pop('groups', None)
+
+    class Meta:
+        model = User
+        fields = UserCreationForm.Meta.fields + ('group',)
+
+    def save_m2m(self):
+        pass  # No M2M to save beyond group, handled in save_model
+
 class CustomUserAdmin(UserAdmin):
-    add_fieldsets = UserAdmin.add_fieldsets + (
+    form = CustomUserChangeForm
+    add_form = CustomUserAddForm
+    inlines = [ProfileInline]
+
+    def get_role(self, obj):
+        group = obj.groups.first()
+        return group.name if group else 'No Role'
+    get_role.short_description = 'Role'
+    get_role.admin_order_field = 'groups'
+
+    def get_branch(self, obj):
+        try:
+            return obj.profile.branch.name if obj.profile and obj.profile.branch else 'No Branch'
+        except:
+            return 'No Branch'
+    get_branch.short_description = 'Branch'
+
+    list_display = ('username', 'first_name', 'last_name', 'get_role', 'get_branch', 'is_staff', 'is_active', 'date_joined')
+
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'password1', 'password2')
+        }),
         ('Roles', {
-            'fields': ('groups',),
-            'description': 'Assign roles: Cashier, Manager, or Admin by selecting the appropriate group.',
+            'classes': ('collapse',),
+            'fields': ('group',),
+            'description': 'Assign a single role: Cashier or Manager via dropdown. Superuser status is handled after creation.',
         }),
     )
 
-    # Customize fieldsets to move 'groups' to a new fieldset
-    original_fieldsets = UserAdmin.fieldsets
-    permissions_fieldset = list(original_fieldsets[2])  # Permissions fieldset
-    permissions_dict = permissions_fieldset[1]
-    permissions_fields = list(permissions_dict['fields'])
-    permissions_fields.remove('groups')
-    permissions_dict['fields'] = tuple(permissions_fields)
-    permissions_fieldset = tuple(permissions_fieldset)
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super().get_fieldsets(request, obj)
+        if obj is not None:
+            fieldsets = list(fieldsets)
+            # Modify Personal info to remove email and add branch (but branch via inline)
+            for i, fs in enumerate(fieldsets):
+                if fs[0] == 'Personal info':
+                    fields = list(fs[1]['fields'])
+                    fields = [f for f in fields if f != 'email']
+                    fieldsets[i] = (fs[0], {**fs[1], 'fields': tuple(fields)})
+                    break
+            permissions_index = next((i for i, fs in enumerate(fieldsets) if fs[0] == 'Permissions'), None)
+            if permissions_index is not None:
+                roles_fieldset = ('Roles', {
+                    'fields': ('group',),
+                    'description': 'Assign a single role: Cashier or Manager via dropdown. Superuser is a separate checkbox.',
+                    'classes': ('collapse',),
+                })
+                fieldsets.insert(permissions_index + 1, roles_fieldset)
+                # Remove groups from Permissions if present
+                for i, fs in enumerate(fieldsets):
+                    if fs[0] == 'Permissions':
+                        fields = list(fs[1]['fields'])
+                        if 'groups' in fields:
+                            fields.remove('groups')
+                            fieldsets[i] = (fs[0], {**fs[1], 'fields': tuple(fields)})
+                        break
+            fieldsets = tuple(fieldsets)
+        return fieldsets
 
-    roles_fieldset = ('Roles', {
-        'fields': ('groups',),
-        'description': 'Assign roles: Cashier, Manager, or Admin by selecting the appropriate group.',
-    })
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        group = form.cleaned_data.get('group')
+        obj.groups.clear()
+        if group:
+            obj.groups.add(group)
 
-    fieldsets = (
-        original_fieldsets[0],
-        original_fieldsets[1],
-        permissions_fieldset,
-        roles_fieldset,
-        original_fieldsets[3],
-    )
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = list(super().get_readonly_fields(request, obj))
+        if obj and obj.is_superuser:
+            readonly_fields.append('group')
+        return readonly_fields
 
 admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)

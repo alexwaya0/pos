@@ -1,3 +1,4 @@
+# models.py
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -100,3 +101,10 @@ class UserActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.get_action_display()} at {self.timestamp}"
+
+class Profile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"Profile for {self.user.username}"
