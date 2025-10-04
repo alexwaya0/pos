@@ -348,6 +348,11 @@ def get_stock(request):
             product_id=product_id, branch_id=branch_id
         ).aggregate(total=Sum('quantity'))['total'] or 0
         return JsonResponse({'available': total_stock})
+    elif branch_id:
+        # New: Support preloading all stocks for a branch
+        stocks = ProductStock.objects.filter(branch_id=branch_id).values('product_id').annotate(available=Sum('quantity'))
+        stocks_list = [{'product_id': item['product_id'], 'available': item['available'] or 0} for item in stocks]
+        return JsonResponse({'stocks': stocks_list})
     return JsonResponse({'available': 0}, status=400)
 
 @login_required

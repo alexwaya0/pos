@@ -1,4 +1,3 @@
-#sale_create.html
 {% extends 'pos/base.html' %}
 {% load humanize %}
 {% block title %}New Sale{% endblock %}
@@ -147,30 +146,78 @@
     font-weight: 600;
     color: var(--darkgreen);
   }
-  .stock-warning {
-    color: #ef4444;
-    font-size: 0.75rem;
-    margin-top: 4px;
-  }
   .stock-loading {
     color: #6b7280;
     font-style: italic;
   }
   .field-error {
-    border-color: #ef4444 !important;
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
-    animation: shake 0.5s ease-in-out;
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2), inset 0 0 0 1px rgba(220, 38, 38, 0.1) !important;
+    animation: shake 0.6s ease-in-out, pulseError 2s infinite;
   }
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
   }
-  .field-error + .error-text {
-    color: #ef4444;
-    font-size: 0.75rem;
+  @keyframes pulseError {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2), inset 0 0 0 1px rgba(220, 38, 38, 0.1); }
+    50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.15), inset 0 0 0 1px rgba(220, 38, 38, 0.1); }
+  }
+  .error-text {
+    color: #dc2626;
+    font-size: 0.8125rem;
+    font-weight: 600;
     margin-top: 4px;
     display: block;
+    animation: fadeInError 0.3s ease-out;
+    position: relative;
+  }
+  .error-text:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #dc2626;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 10;
+    margin-bottom: 4px;
+  }
+  @keyframes fadeInError {
+    from { opacity: 0; transform: translateY(-2px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .out-of-stock-badge {
+    background: #fee2e2;
+    color: #dc2626;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    border: 1px solid #fecaca;
+  }
+  .stock-badge {
+    background: #f0fdf4;
+    color: #16a34a;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    border: 1px solid #bbf7d0;
+  }
+  .insufficient-stock-badge {
+    background: #fef2f2;
+    color: #dc2626;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    border: 1px solid #fecaca;
   }
   .add-item-btn {
     background: linear-gradient(135deg, var(--gold), var(--gold-dark));
@@ -268,6 +315,7 @@
     padding: 12px;
     border-radius: 8px;
     margin-bottom: 16px;
+    animation: fadeInError 0.3s ease-out;
   }
   .alert-error {
     background: #fef2f2;
@@ -276,6 +324,7 @@
     padding: 12px;
     border-radius: 8px;
     margin-bottom: 16px;
+    animation: fadeInError 0.3s ease-out;
   }
   .js-error {
     background: #fef2f2;
@@ -285,6 +334,7 @@
     border-radius: 8px;
     margin-bottom: 16px;
     display: none;
+    animation: fadeInError 0.3s ease-out;
   }
   /* Responsive */
   @media (max-width: 768px) {
@@ -341,14 +391,14 @@
           <label for="{{ form.customer_phone.id_for_label }}">Customer Phone</label>
           <input type="text" name="{{ form.customer_phone.name }}" value="{{ form.customer_phone.value|default:'' }}" class="customer-visible-border" maxlength="30">
           {% if form.customer_phone.errors %}
-            <span class="error-text">{{ form.customer_phone.errors.0 }}</span>
+            <span class="error-text" data-tooltip="{{ form.customer_phone.errors.0 }}">{{ form.customer_phone.errors.0 }}</span>
           {% endif %}
         </div>
         <div class="form-group">
           <label for="{{ form.customer_name.id_for_label }}">Customer Name</label>
           <input type="text" name="{{ form.customer_name.name }}" value="{{ form.customer_name.value|default:'' }}" class="customer-visible-border" maxlength="200">
           {% if form.customer_name.errors %}
-            <span class="error-text">{{ form.customer_name.errors.0 }}</span>
+            <span class="error-text" data-tooltip="{{ form.customer_name.errors.0 }}">{{ form.customer_name.errors.0 }}</span>
           {% endif %}
         </div>
       </div>
@@ -413,6 +463,7 @@
   ];
 
   const stockMap = new Map();
+  const cartQuantities = new Map(); // Track total qty per product across all rows
 
   // Get branch ID from the hidden form field
   const branchInput = document.querySelector('input[name="branch"]');
@@ -434,13 +485,14 @@
   function showError(element, message, duration = 5000) {
     const errorDiv = document.getElementById('js-error');
     errorDiv.textContent = message;
+    errorDiv.setAttribute('data-tooltip', message);
     errorDiv.style.display = 'block';
     if (duration > 0) {
       setTimeout(() => { errorDiv.style.display = 'none'; }, duration);
     }
   }
 
-  // Preload all stock levels for the branch
+  // Preload all stock levels for the branch (now supported by updated view)
   async function preloadStock() {
     if (!branchId) return;
     try {
@@ -459,6 +511,30 @@
     } catch (error) {
       console.error('Failed to preload stock:', error);
     }
+  }
+
+  // Update cart quantities and refresh all relevant stock displays
+  function updateCartQuantitiesAndStocks() {
+    const rows = document.querySelectorAll('#items-tbody tr');
+    rows.forEach((row, idx) => {
+      const productSelect = row.querySelector(`select[name="item-${idx}-product_id"]`);
+      const qtyInput = row.querySelector(`input[name="item-${idx}-qty"]`);
+      const productId = parseInt(productSelect.value);
+      const qty = parseInt(qtyInput.value) || 0;
+
+      if (productId) {
+        const currentTotal = cartQuantities.get(productId) || 0;
+        cartQuantities.set(productId, currentTotal + qty); // This will be overwritten per row, but since we loop all, it's fine
+      }
+    });
+
+    // Now refresh stock display and validation for all rows
+    rows.forEach((row, idx) => {
+      validateStock(idx);
+      calcLineTotal(idx);
+    });
+    updateGrandTotal();
+    validateForm();
   }
 
   async function addItemRow(productId = null) {
@@ -482,7 +558,7 @@
           <input type="number" name="item-${itemIndex}-qty" min="1" class="qty-input editable-field-border" data-index="${itemIndex}" value="1" required>
           <span class="error-text" id="qty-error-${itemIndex}"></span>
         </td>
-        <td><span id="available-stock-${itemIndex}">Select Product</span><div class="stock-warning" id="stock-warning-${itemIndex}"></div></td>
+        <td><span id="available-stock-${itemIndex}">Select Product</span><span class="error-text" id="stock-error-${itemIndex}"></span></td>
         <td><span class="line-total" id="line-total-${itemIndex}">KSh 0.00</span></td>
         <td><button type="button" class="remove-row" data-index="${itemIndex}">×</button></td>
       `;
@@ -512,26 +588,24 @@
       // Event listeners for realtime updates
       select.addEventListener('change', function() {
         setProductDetails(this);
-        validateStock(itemIndex);
-        calcLineTotal(itemIndex);
-        updateGrandTotal();
-        validateForm();
+        updateCartQuantitiesAndStocks();  // Refresh global stock after selection
       });
 
       // Realtime price validation and calculation
       priceInput.addEventListener('input', () => {
         validatePrice.call(priceInput);
+        calcLineTotal(itemIndex);
+        updateGrandTotal();
+        validateForm();
       });
 
-      // Realtime quantity validation, stock check, and calculation
-      qtyInput.addEventListener('input', () => {
-        validateStock(itemIndex);
+      // Realtime quantity updates (triggers global stock update, totals, validation)
+      qtyInput.addEventListener('input', function() {
+        updateCartQuantitiesAndStocks();  // Global update including this change
       });
 
       itemIndex++;
-      calcLineTotal(itemIndex - 1);
-      updateGrandTotal();
-      validateForm();
+      updateCartQuantitiesAndStocks();
     } catch (error) {
       console.error('Error adding row:', error);
       showError(null, 'Failed to add item row. Please refresh and try again.', 3000);
@@ -543,6 +617,7 @@
     const selectedOption = select.options[select.selectedIndex];
     const priceInput = document.querySelector(`input[name="item-${index}-unit_price"]`);
     const stockSpan = document.getElementById(`available-stock-${index}`);
+    const stockError = document.getElementById(`stock-error-${index}`);
 
     if (selectedOption.value) {
       priceInput.value = selectedOption.dataset.price;
@@ -553,6 +628,10 @@
       priceInput.min = 0;
       if (stockSpan) {
         stockSpan.innerHTML = '<span style="color: #6b7280;">Select Product</span>';
+      }
+      if (stockError) {
+        stockError.textContent = '';
+        stockError.setAttribute('data-tooltip', '');
       }
       document.getElementById(`price-error-${index}`).textContent = '';
       priceInput.classList.remove('field-error');
@@ -570,15 +649,67 @@
 
     if (currentPrice < minPrice) {
       const message = `Price cannot be below KSh ${minPrice.toFixed(2)}`;
-      if (priceError) priceError.textContent = message;
+      if (priceError) {
+        priceError.textContent = message;
+        priceError.setAttribute('data-tooltip', message);
+      }
       this.classList.add('field-error');
     } else {
-      if (priceError) priceError.textContent = '';
+      if (priceError) {
+        priceError.textContent = '';
+        priceError.setAttribute('data-tooltip', '');
+      }
       this.classList.remove('field-error');
     }
     calcLineTotal(index);
     updateGrandTotal();
     validateForm();
+  }
+
+  function validateStockQuantity(index, totalQty, available) {
+    const qtyInput = document.querySelector(`input[name="item-${index}-qty"]`);
+    const stockError = document.getElementById(`stock-error-${index}`);
+    const qtyError = document.getElementById(`qty-error-${index}`);
+
+    const qty = parseInt(qtyInput.value) || 0;
+
+    if (totalQty > available && available >= 0) {
+      const message = `Total quantity (${totalQty}) exceeds available stock (${available}).`;
+      const warning = `Only ${available} available (cart total: ${totalQty}).`;
+      if (stockError) {
+        stockError.textContent = warning;
+        stockError.setAttribute('data-tooltip', warning);
+      }
+      if (qtyError) {
+        qtyError.textContent = message;
+        qtyError.setAttribute('data-tooltip', message);
+      }
+      qtyInput.classList.add('field-error');
+      return true; // Has issue
+    } else if (qty < 1) {
+      const message = 'Quantity must be at least 1.';
+      if (qtyError) {
+        qtyError.textContent = message;
+        qtyError.setAttribute('data-tooltip', message);
+      }
+      qtyInput.classList.add('field-error');
+      if (stockError) {
+        stockError.textContent = '';
+        stockError.setAttribute('data-tooltip', '');
+      }
+      return true; // Has issue
+    } else {
+      if (stockError) {
+        stockError.textContent = '';
+        stockError.setAttribute('data-tooltip', '');
+      }
+      if (qtyError) {
+        qtyError.textContent = '';
+        qtyError.setAttribute('data-tooltip', '');
+      }
+      qtyInput.classList.remove('field-error');
+      return false; // No issue
+    }
   }
 
   async function validateStock(index) {
@@ -587,7 +718,7 @@
       const productId = parseInt(select.value);
       const qtyInput = document.querySelector(`input[name="item-${index}-qty"]`);
       const stockSpan = document.getElementById(`available-stock-${index}`);
-      const warningDiv = document.getElementById(`stock-warning-${index}`);
+      const stockError = document.getElementById(`stock-error-${index}`);
       const qtyError = document.getElementById(`qty-error-${index}`);
 
       if (!productId || !branchId) {
@@ -595,13 +726,16 @@
           const msg = !productId ? 'Select Product' : 'No Branch';
           stockSpan.innerHTML = `<span style="color: #6b7280;">${msg}</span>`;
         }
-        if (warningDiv) warningDiv.textContent = '';
-        if (qtyError) qtyError.textContent = '';
+        if (stockError) {
+          stockError.textContent = '';
+          stockError.setAttribute('data-tooltip', '');
+        }
+        if (qtyError) {
+          qtyError.textContent = '';
+          qtyError.setAttribute('data-tooltip', '');
+        }
         qtyInput.classList.remove('field-error');
-        calcLineTotal(index);
-        updateGrandTotal();
-        validateForm();
-        return;
+        return false; // No issue
       }
 
       let available = stockMap.get(productId);
@@ -627,52 +761,64 @@
         }
       }
 
+      const totalCartQty = cartQuantities.get(productId) || 0;
+      const remaining = available - totalCartQty;
+
       if (stockSpan) {
         if (available === 0) {
-          stockSpan.innerHTML = '<span style="color: #ef4444; font-weight: bold;">Out of Stock</span>';
-        } else {
-          stockSpan.textContent = available;
-          stockSpan.style.color = '';
-          stockSpan.style.fontWeight = '';
+          stockSpan.innerHTML = '<span class="out-of-stock-badge">Out of Stock</span>';
+          if (stockError) {
+            stockError.textContent = 'Cannot add items.';
+            stockError.setAttribute('data-tooltip', 'Product is out of stock in this branch.');
+          }
+        } else if (remaining < 0) {
+          stockSpan.innerHTML = `<span class="insufficient-stock-badge">Insufficient Stock</span>`;
+          if (stockError) {
+            stockError.textContent = `Cart exceeds stock by ${Math.abs(remaining)}.`;
+            stockError.setAttribute('data-tooltip', `Total cart qty: ${totalCartQty}, Available: ${available}`);
+          }
+        } else if (remaining > 0) {
+          stockSpan.innerHTML = `<span class="stock-badge">${remaining} remaining</span>`;
           if (fetched) {
             stockSpan.classList.remove('stock-loading');
+          }
+          if (stockError) {
+            stockError.textContent = '';
+            stockError.setAttribute('data-tooltip', '');
+          }
+        } else {
+          stockSpan.innerHTML = `<span class="stock-badge">0 remaining</span>`;
+          if (stockError) {
+            stockError.textContent = 'Cart uses all available stock.';
+            stockError.setAttribute('data-tooltip', `Total cart qty: ${totalCartQty}, Available: ${available}`);
           }
         }
       }
 
-      const qty = parseInt(qtyInput.value) || 0;
-      if (qty > available && available >= 0) {
-        const message = `Quantity exceeds available stock (${available}).`;
-        if (warningDiv) warningDiv.textContent = `Warning: Only ${available} available.`;
-        if (qtyError) qtyError.textContent = message;
-        qtyInput.classList.add('field-error');
-      } else if (qty < 1) {
-        if (qtyError) qtyError.textContent = 'Quantity must be at least 1.';
-        qtyInput.classList.add('field-error');
-        if (warningDiv) warningDiv.textContent = '';
-      } else {
-        if (warningDiv) warningDiv.textContent = '';
-        if (qtyError) qtyError.textContent = '';
-        qtyInput.classList.remove('field-error');
-      }
+      // Global quantity validation
+      const hasStockIssue = validateStockQuantity(index, totalCartQty, available);
+      return hasStockIssue;
     } catch (error) {
       console.error('Stock validation failed:', error);
       const stockSpan = document.getElementById(`available-stock-${index}`);
-      const warningDiv = document.getElementById(`stock-warning-${index}`);
+      const stockError = document.getElementById(`stock-error-${index}`);
       const qtyError = document.getElementById(`qty-error-${index}`);
       const qtyInput = document.querySelector(`input[name="item-${index}-qty"]`);
-      if (stockSpan) stockSpan.innerHTML = '<span style="color: #ef4444;">Error loading stock</span>';
-      if (warningDiv) warningDiv.textContent = '';
-      if (qtyError) qtyError.textContent = '';
+      if (stockSpan) stockSpan.innerHTML = '<span style="color: #dc2626;">Error loading stock</span>';
+      if (stockError) {
+        stockError.textContent = 'Stock check failed.';
+        stockError.setAttribute('data-tooltip', error.message);
+      }
+      if (qtyError) {
+        qtyError.textContent = '';
+        qtyError.setAttribute('data-tooltip', '');
+      }
       qtyInput.classList.remove('field-error');
       if (!error.message.includes('404') && !error.message.includes('Network')) {
         showError(null, `Stock check error: ${error.message}. Please check connection.`, 5000);
       }
+      return true; // Treat as issue
     }
-    // Always update totals and form state after validation
-    calcLineTotal(index);
-    updateGrandTotal();
-    validateForm();
   }
 
   function calcLineTotal(index) {
@@ -713,10 +859,21 @@
       const index = parseInt(button.dataset.index);
       const row = document.getElementById(`item-row-${index}`);
       if (row) {
+        // Remove contribution to cart qty
+        const productSelect = row.querySelector(`select[name="item-${index}-product_id"]`);
+        const qtyInput = row.querySelector(`input[name="item-${index}-qty"]`);
+        const productId = parseInt(productSelect.value);
+        const qty = parseInt(qtyInput.value) || 0;
+        if (productId && qty > 0) {
+          const currentTotal = cartQuantities.get(productId) || 0;
+          cartQuantities.set(productId, Math.max(0, currentTotal - qty));
+          if (cartQuantities.get(productId) === 0) {
+            cartQuantities.delete(productId);
+          }
+        }
         row.remove();
       }
-      updateGrandTotal();
-      validateForm();
+      updateCartQuantitiesAndStocks();  // Refresh after removal
     } catch (error) {
       console.error('Error removing row:', error);
       showError(null, 'Failed to remove row.', 2000);
@@ -735,10 +892,9 @@
       rows.forEach((row, idx) => {
         const productSelect = row.querySelector(`select[name="item-${idx}-product_id"]`);
         const priceInput = row.querySelector('.price-input');
-        const qtyInput = row.querySelector('.qty-input');
         const priceError = document.getElementById(`price-error-${idx}`);
         const qtyError = document.getElementById(`qty-error-${idx}`);
-        const warning = document.getElementById(`stock-warning-${idx}`);
+        const stockError = document.getElementById(`stock-error-${idx}`);
 
         if (!productSelect.value) hasErrors = true;
         if (parseFloat(priceInput.value) < parseFloat(priceInput.min) && !priceError.textContent) {
@@ -746,7 +902,7 @@
           hasErrors = true;
         }
         if (qtyError && qtyError.textContent) hasErrors = true;
-        if (warning && warning.textContent && warning.textContent.includes('Warning')) hasStockIssues = true;
+        if (stockError && stockError.textContent && (stockError.textContent.includes('Only') || stockError.textContent.includes('Out') || stockError.textContent.includes('Insufficient') || stockError.textContent.includes('failed'))) hasStockIssues = true;
       });
 
       const grandTotal = parseFloat(document.getElementById('grand-total-val').textContent.replace('KSh ', '')) || 0;
