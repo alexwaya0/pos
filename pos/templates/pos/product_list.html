@@ -348,7 +348,7 @@
         </div>
         <div class="flex-1 min-w-0">
           <p class="metric-title">Low Stock Items</p>
-          <p class="metric-value text-red-600">0</p> <!-- Extend view to pass low_stock_count -->
+          <p class="metric-value text-red-600">{{ low_stock_count|default:0 }}</p> <!-- Extend view to pass low_stock_count -->
         </div>
       </div>
       <a href="?filter=low_stock" class="cta-link" aria-label="View low stock items">
@@ -365,7 +365,7 @@
         </div>
         <div class="flex-1 min-w-0">
           <p class="metric-title">Avg. Selling Price</p>
-          <p class="metric-value text-green-600">KSh 0</p> <!-- Extend view to pass avg_price -->
+          <p class="metric-value text-green-600">KSh {{ avg_price|default:0|floatformat:0 }}</p> <!-- Extend view to pass avg_price -->
         </div>
       </div>
       <a href="#" class="cta-link" aria-label="View pricing details">
@@ -402,42 +402,36 @@
             <th class="sortable" data-column="name">Product <span class="sort-indicator">↕</span></th>
             <th class="sortable" data-column="category">Category <span class="sort-indicator">↕</span></th>
             <th class="sortable" data-column="price">Selling Price <span class="sort-indicator">↕</span></th>
-            <th class="sortable" data-column="stock">Stock Level <span class="sort-indicator">↕</span></th>
             <th class="sortable" data-column="min_price">Min Price <span class="sort-indicator">↕</span></th>
+            <th class="sortable" data-column="stock">Stock Level <span class="sort-indicator">↕</span></th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for product in products %}
-            {% with total_stock=0 %}
-              {% for stock in product.stocks.all %}
-                {% with total_stock=total_stock|add:stock.quantity %}{% endwith %}
-              {% empty %}
-                {% with total_stock=0 %}{% endwith %}
-              {% endfor %}
-              <tr 
-                data-sort-name="{{ product.name|lower }}" 
-                data-sort-category="{{ product.category|lower }}" 
-                data-sort-price="{{ product.price }}" 
-                data-sort-stock="{{ total_stock }}" 
-                data-sort-minprice="{{ product.min_price }}"
-                class="{% if total_stock <= 10 %}low-stock{% endif %}">
-                <td>{{ product.name }}</td>
-                <td>{{ product.category }}</td>
-                <td>KSh {{ product.price|floatformat:2 }}</td>
-                <td>
-                  {{ total_stock }}
-                  {% if total_stock <= 10 %}<span class="alert-badge ml-2">Low</span>{% endif %}
-                </td>
-                <td>KSh {{ product.min_price|floatformat:2 }}</td>
-                <td>
-                  <button class="sell-btn" onclick="quickSell({{ product.id }})" aria-label="Quick sell {{ product.name }}">
-                    <i data-lucide="shopping-cart" class="w-3 h-3"></i>
-                    Sell
-                  </button>
-                </td>
-              </tr>
-              {% endwith %}
+            <tr 
+              data-product-id="{{ product.id }}"
+              data-sort-name="{{ product.name|lower }}" 
+              data-sort-category="{{ product.category|lower }}" 
+              data-sort-price="{{ product.price }}" 
+              data-sort-stock="{{ product.total_stock|default:0 }}" 
+              data-sort-minprice="{{ product.min_price }}"
+              class="{% if product.total_stock|default:0 <= 10 %}low-stock{% endif %}">
+              <td>{{ product.name }}</td>
+              <td>{{ product.category }}</td>
+              <td>KSh {{ product.price|floatformat:2 }}</td>
+              <td>KSh {{ product.min_price|floatformat:2 }}</td>
+              <td>
+                {{ product.total_stock|default:0 }}
+                {% if product.total_stock|default:0 <= 10 %}<span class="alert-badge ml-2">Low</span>{% endif %}
+              </td>
+              <td>
+                <button class="sell-btn" onclick="quickSell({{ product.id }})" aria-label="Quick sell {{ product.name }}">
+                  <i data-lucide="shopping-cart" class="w-3 h-3"></i>
+                  Sell
+                </button>
+              </td>
+            </tr>
           {% endfor %}
         </tbody>
       </table>
@@ -491,8 +485,8 @@
       let sortColumn = 'name';
       let sortDirection = 'asc';
 
-      function sortRows(column) {
-        currentRows.sort((a, b) => {
+      function sortRows(column, rowsToSort) {
+        rowsToSort.sort((a, b) => {
           let aVal = a.dataset[`sort-${column}`] || '';
           let bVal = b.dataset[`sort-${column}`] || '';
           if (['price', 'stock', 'min_price'].includes(column)) {
@@ -532,14 +526,18 @@
       function renderTable() {
         const term = searchInput.value.toLowerCase();
         const filter = filterSelect.value;
-        let filtered = currentRows.filter(row => {
-          const name = row.dataset['sort-name'] || '';
-          const category = row.dataset['sort-category'] || '';
+        let filtered = originalRows.filter(row => {
+          const name = row.cells[0] ? row.cells[0].textContent.toLowerCase() : '';
+          const category = row.cells[1] ? row.cells[1].textContent.toLowerCase() : '';
           const stock = parseInt(row.dataset['sort-stock']) || 0;
           if (term && !name.includes(term) && !category.includes(term)) return false;
           if (filter === 'low_stock' && stock > 10) return false;
           return true;
         });
+        
+        // Sort the filtered rows
+        sortRows(sortColumn, filtered);
+        currentRows = filtered;
         
         const pageSize = pageSizeSelect.value;
         const rpp = pageSize === 'all' ? Infinity : parseInt(pageSize);
@@ -570,7 +568,7 @@
       }
 
       // Initial sort and render
-      sortRows(sortColumn);
+      sortRows(sortColumn, currentRows);
       updateHeaders();
       renderTable();
 
@@ -618,9 +616,7 @@
           sortColumn = column;
           sortDirection = 'asc';
         }
-        sortRows(column);
-        updateHeaders();
-        currentPage = 1;
+        // Re-filter and sort
         renderTable();
       });
 
@@ -630,6 +626,48 @@
         filterSelect.value = 'low_stock';
         renderTable();
       }
+
+      // Real-time stock updates
+      async function updateStocks() {
+        try {
+          const response = await fetch("{% url 'pos:product_list' %}", {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          });
+          const result = await response.json();
+          const stocks = result.stocks;
+          let lowStockCount = 0;
+          stocks.forEach(stock => {
+            const row = document.querySelector(`tr[data-product-id="${stock.id}"]`);
+            if (row) {
+              row.dataset.sortStock = stock.total_stock;
+              const stockTd = row.cells[4]; // Stock level td (0-based index)
+              stockTd.innerHTML = `
+                ${stock.total_stock}
+                ${stock.total_stock <= 10 ? '<span class="alert-badge ml-2">Low</span>' : ''}
+              `;
+              if (stock.total_stock <= 10) {
+                row.classList.add('low-stock');
+                lowStockCount++;
+              } else {
+                row.classList.remove('low-stock');
+              }
+            }
+          });
+          // Update low stock card
+          const lowStockEl = document.querySelector('.card-lowstock .metric-value');
+          if (lowStockEl) {
+            lowStockEl.textContent = lowStockCount;
+          }
+          // Re-render to apply any filters/sorts
+          renderTable();
+        } catch (error) {
+          console.error('Failed to update stocks:', error);
+        }
+      }
+
+      // Initial update and poll every 30 seconds
+      updateStocks();
+      setInterval(updateStocks, 30000);
     }
   });
 </script>

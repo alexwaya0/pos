@@ -1,5 +1,3 @@
-#views.py
-
 # Updated views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -183,7 +181,13 @@ def dashboard(request):
 
 @login_required
 def product_list(request):
-    products = Product.objects.all()
+    products = Product.objects.annotate(total_stock=Sum('stocks__quantity')).all()
+    if request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest':
+        data = [{
+            'id': product.id,
+            'total_stock': product.total_stock or 0
+        } for product in products]
+        return JsonResponse({'stocks': data})
     return render(request, "pos/product_list.html", {"products": products})
 
 @login_required
