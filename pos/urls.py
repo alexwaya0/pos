@@ -15,4 +15,5 @@ urlpatterns = [
     path("reports/", views.reports, name="reports"),
 
     path('get-notifications/', views.get_notifications, name='get_notifications'),
+    path('ajax/stock/', views.get_stock, name='get_stock'),
 ]

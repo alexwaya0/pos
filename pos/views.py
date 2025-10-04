@@ -1,3 +1,5 @@
+#views.py
+
 # Updated views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -273,7 +275,15 @@ def sale_create(request):
             messages.success(request, "Sale recorded.")
             return redirect("pos:receipt", sale_id=sale.id)
     else:
-        form = SaleCreateForm()
+        initial_data = {}
+        try:
+            user_branch = request.user.profile.branch
+            initial_data = {'branch': user_branch}
+        except AttributeError:
+            first_branch = Branch.objects.first()
+            if first_branch:
+                initial_data = {'branch': first_branch}
+        form = SaleCreateForm(initial=initial_data)
     products = Product.objects.all()
     return render(request, "pos/sale_create.html", {
         "form": form,
@@ -323,6 +333,18 @@ def get_notifications(request):
             'type': 'expiry'
         })
     return JsonResponse({'notifications': notifications})
+
+@login_required
+def get_stock(request):
+    from django.db.models import Sum
+    product_id = request.GET.get('product_id')
+    branch_id = request.GET.get('branch_id')
+    if product_id and branch_id:
+        total_stock = ProductStock.objects.filter(
+            product_id=product_id, branch_id=branch_id
+        ).aggregate(total=Sum('quantity'))['total'] or 0
+        return JsonResponse({'available': total_stock})
+    return JsonResponse({'available': 0}, status=400)
 
 @login_required
 def reports(request):

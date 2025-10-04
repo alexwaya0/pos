@@ -1,3 +1,5 @@
+appdirs==1.4.4
+argcomplete==3.6.2
 asgiref==3.9.2
 Brotli==1.1.0
 cffi==2.0.0
@@ -5,12 +7,18 @@ cssselect2==0.8.0
 Django==5.2.6
 django-widget-tweaks==1.5.0
 fonttools==4.60.1
+importlib_resources==6.5.2
 numpy==2.3.3
 pillow==11.3.0
 pycparser==2.23
 pydyf==0.11.0
 pyphen==0.17.2
+python-barcode==0.16.1
+python-escpos==3.1
 pytz==2025.2
+PyYAML==6.0.3
+qrcode==8.2
+six==1.17.0
 sqlparse==0.5.3
 tinycss2==1.4.0
 tinyhtml5==2.0.0

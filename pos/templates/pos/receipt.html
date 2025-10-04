@@ -92,6 +92,17 @@ document.addEventListener('DOMContentLoaded', function() {
   // Also update the title spans for consistency
   const titleSpans = document.querySelectorAll('#receipt-title');
   titleSpans.forEach(span => span.textContent = receiptNum);
+
+  // Self-destruct Django messages within 0.01 seconds (10ms)
+  setTimeout(function() {
+    const messages = document.querySelectorAll('.flash-container, .messages, div.messages, .alert, .alerts');
+    messages.forEach(msg => {
+      if (msg) {
+        msg.style.display = 'none';
+        msg.remove();
+      }
+    });
+  }, 10);
 });
 
 function printReceipt() {

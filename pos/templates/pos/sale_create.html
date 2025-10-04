@@ -1,517 +1,788 @@
-{% extends "pos/base.html" %}
-{% load static %}
+#sale_create.html
+{% extends 'pos/base.html' %}
+{% load humanize %}
 {% block title %}New Sale{% endblock %}
-{% block page_title %}New Sale{% endblock %}
-
-{% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
+{% block page_title %}Create New Sale{% endblock %}
+{% block content %}
 <style>
-  /* Enhanced Color Palette: Teal (#0f766e), Gold (#D4AF37), Dark Teal (#064420) */
-  :root {
-    --teal: #0f766e;
-    --dark-teal: #064420;
-    --gold: #D4AF37;
-    --gold-dark: #b8962c;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --focus-ring: 0 0 0 3px rgb(212 175 55 / 0.5);
+  .dashboard-container {
+    animation: fadeSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0;
+    transform: translateY(10px);
   }
-
-  body {
-    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  @keyframes fadeSlideIn {
+    to { opacity: 1; transform: translateY(0); }
   }
-
-  /* Advanced Card Styling */
-  .sleek-card {
-    background: linear-gradient(145deg, #ffffff, #f8fafc);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    border-radius: 20px;
-    box-shadow: var(--shadow-md);
+  .card {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1);
     position: relative;
+    padding: 20px;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
   }
-
-  .sleek-card::before {
+  .card::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    height: 4px;
+    background: linear-gradient(90deg, var(--gold), var(--darkgreen));
     opacity: 0;
     transition: opacity 0.3s ease;
   }
-
-  .sleek-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
+  .card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 40px rgba(6, 68, 32, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
   }
-
-  .sleek-card:hover::before {
-    opacity: 1;
+  .card:hover::before { opacity: 1; }
+  .card-basic { 
+    background: linear-gradient(145deg, #FFFFFF 0%, #F8FAFC 50%, rgba(248, 250, 252, 0.8) 100%); 
+    border: 1px solid rgba(226, 232, 240, 0.5);
   }
-
-  /* Sleek Form Field Styling (Enforced via forms.py widgets) */
-  .sleek-input, .sleek-select, .sleek-textarea {
-    @apply w-full px-4 py-3 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1;
-    box-shadow: var(--shadow-sm);
+  .card-items { 
+    background: linear-gradient(145deg, #FEF2F2 0%, #FEE2E2 50%, rgba(254, 226, 226, 0.8) 100%); 
+    border: 1px solid rgba(239, 68, 68, 0.1);
   }
-
-  .sleek-input:focus, .sleek-select:focus, .sleek-textarea:focus {
-    @apply border-teal-500 ring-teal-500/20;
-    box-shadow: var(--focus-ring), var(--shadow-md);
+  .metric-icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
   }
-
-  .sleek-input::placeholder {
-    @apply text-gray-400;
+  .card:hover .metric-icon {
+    background: rgba(255, 255, 255, 0.9);
+    transform: scale(1.05);
   }
-
-  /* Table Container (Guided by Snippet) */
+  .metric-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    margin: 0 0 4px 0;
+    line-height: 1.2;
+  }
+  .metric-value {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.1;
+  }
+  .form-group {
+    margin-bottom: 16px;
+  }
+  .form-group label {
+    display: block;
+    font-weight: 500;
+    color: var(--darkgreen);
+    margin-bottom: 4px;
+    font-size: 0.875rem;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+  }
+  .customer-visible-border, .editable-field-border {
+    border: 1px solid #d1d5db !important;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--gold);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+  }
+  .form-group input[readonly] {
+    background-color: #f3f4f6;
+    color: #6b7280;
+  }
+  .customer-fields {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .customer-fields .form-group {
+    flex: 1;
+    min-width: 200px;
+  }
   .table-container {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 24px;
+    overflow-x: auto;
+    margin-bottom: 16px;
   }
-
-  .table-container h3 {
-    @apply mb-4 text-teal text-lg font-semibold px-6 pt-6;
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
   }
-
-  /* Table Outline Styling (Simple Bordered Outline) */
-  .enhanced-table {
-    @apply w-full text-left border-collapse;
-    border: 1px solid #e5e7eb;
+  th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #f1f5f9;
   }
-
-  .enhanced-table thead th {
-    @apply px-6 py-4 text-left text-xs font-bold uppercase tracking-wider bg-teal text-white border border-gray-300;
+  th {
+    background-color: var(--darkgreen);
+    color: #ffffff;
+    font-weight: 600;
   }
-
-  /* Distinct Column Widths and Styles */
-  .enhanced-table th:nth-child(1) { /* Product Name */
-    min-width: 250px;
-    max-width: 300px;
+  tr:hover {
+    background-color: #f8fafc;
   }
-
-  .enhanced-table th:nth-child(2), .enhanced-table th:nth-child(4) { /* Price and Total - Right Aligned */
-    @apply text-right;
+  .line-total {
+    font-weight: 600;
+    color: var(--darkgreen);
   }
-
-  .enhanced-table th:nth-child(3) { /* Quantity - Right Aligned */
-    min-width: 100px;
-    @apply text-right;
+  .stock-warning {
+    color: #ef4444;
+    font-size: 0.75rem;
+    margin-top: 4px;
   }
-
-  .enhanced-table th:nth-child(5) { /* Actions - Center */
-    min-width: 100px;
-    @apply text-center;
+  .stock-loading {
+    color: #6b7280;
+    font-style: italic;
   }
-
-  .enhanced-table tbody tr {
-    @apply transition-all duration-200;
+  .field-error {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+    animation: shake 0.5s ease-in-out;
   }
-
-  .enhanced-table tbody td {
-    @apply px-6 py-4 text-sm font-medium text-gray-900 align-middle border border-gray-300;
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
   }
-
-  .enhanced-table tbody td:nth-child(1) { /* Product Name */
-    @apply font-semibold text-teal-700;
+  .field-error + .error-text {
+    color: #ef4444;
+    font-size: 0.75rem;
+    margin-top: 4px;
+    display: block;
   }
-
-  .enhanced-table tbody td:nth-child(2), .enhanced-table td:nth-child(3), .enhanced-table td:nth-child(4) {
-    @apply text-right font-mono;
+  .add-item-btn {
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: var(--darkgreen);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    margin-bottom: 16px;
   }
-
-  .enhanced-table tbody td:nth-child(4) { /* Line Total */
-    @apply text-teal-600 font-bold;
+  .add-item-btn:hover {
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
   }
-
-  .enhanced-table tbody td:nth-child(5) { /* Actions */
-    @apply text-center;
+  .remove-row {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.2s ease;
   }
-
-  /* Enhanced Focus/Hover for Inline-Styled Inputs */
-  .table-sleek-input:focus {
-    border-color: #0f766e !important;
-    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1) !important;
+  .remove-row:hover {
+    background: #dc2626;
+    transform: scale(1.1);
   }
-
-  .table-sleek-input:hover {
-    border-color: #0891b2 !important;
+  .grand-total {
+    background: linear-gradient(135deg, var(--darkgreen), #16a34a);
+    color: white;
+    padding: 16px;
+    border-radius: 12px;
+    text-align: right;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 20px;
   }
-
-  /* Remove Button (Styled like Snippet's Sell Button) */
-  .remove-item-btn {
-    @apply inline-block px-4 py-2 text-sm font-medium text-teal bg-teal-50 rounded border border-teal-200 hover:bg-teal-100 hover:text-teal-700 transition-all duration-200;
-  }
-
-  /* Search Panel Enhancements */
-  .search-panel {
-    @apply bg-gradient-to-b from-teal-50 to-white border border-teal-100 rounded-xl p-6 shadow-lg;
-  }
-
-  .search-input {
-    @apply sleek-input mb-4;
-  }
-
-  .search-result-item {
-    @apply flex justify-between items-center p-3 bg-white border border-gray-200 rounded-lg hover:bg-teal-50 hover:border-teal-200 cursor-pointer transition-all duration-200;
-  }
-
-  .search-result-item:hover {
-    transform: translateX(4px);
-  }
-
-  /* Total Display in Footer */
-  .table-footer {
-    @apply bg-teal-50 border-t border-teal-200;
-  }
-
-  .table-footer td {
-    @apply py-4 px-6 font-bold border border-gray-300;
-  }
-
-  /* Empty State Matching Snippet */
-  .empty-state {
-    @apply text-center text-gray-500 py-8 border border-gray-300;
-  }
-
-  .empty-state td {
-    border: 1px solid #e5e7eb;
-  }
-
-  /* Button Enhancements */
-  .sleek-btn {
-    @apply inline-flex items-center justify-center px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2;
-    box-shadow: var(--shadow-md);
-  }
-
   .btn-primary {
-    @apply bg-gradient-to-r from-teal-600 to-teal-700 text-white hover:from-teal-700 hover:to-teal-800 focus:ring-teal-500;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: var(--darkgreen);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
   }
-
-  /* Notes Textarea */
-  .notes-textarea {
-    @apply sleek-textarea resize-none;
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
   }
-
-  /* Grid Responsiveness */
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    background: #6b7280;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-secondary:hover {
+    background: #4b5563;
+    transform: translateY(-1px);
+  }
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .error-msg {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .alert-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .js-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  /* Responsive */
   @media (max-width: 768px) {
-    .enhanced-table {
-      font-size: 0.875rem;
+    .customer-fields {
+      flex-direction: column;
     }
-    .enhanced-table th, .enhanced-table td {
-      @apply px-3 py-3;
+    .customer-fields .form-group {
+      min-width: auto;
     }
-    .table-container {
-      overflow-x: auto;
+    table {
+      min-width: 600px;
+    }
+    .actions {
+      flex-direction: column;
+    }
+    .btn-primary, .btn-secondary {
+      width: 100%;
     }
   }
 </style>
-{% endblock %}
 
-{% block content %}
-<div class="container mx-auto px-4 py-8 max-w-7xl">
-  <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-    <!-- Main Form Column -->
-    <div class="lg:col-span-3">
-      <div class="sleek-card p-8 mb-8" role="region" aria-label="Sale creation form">
-        <form id="sale-form" method="post" novalidate>
-          {% csrf_token %}
-          
-          <!-- Customer & Branch Details -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="md:col-span-1">
-              <label for="{{ form.branch.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">Branch</label>
-              {{ form.branch }}
-            </div>
-            <div class="md:col-span-1">
-              <label for="{{ form.customer_phone.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
-              {{ form.customer_phone }}
-            </div>
-            <div class="md:col-span-1">
-              <label for="{{ form.customer_name.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">Name (Optional)</label>
-              {{ form.customer_name }}
-            </div>
-          </div>
-
-          <!-- Items Section (Guided by Snippet with Outline) -->
-          <div class="mb-8">
-            <div class="table-container">
-              <h3 class="mb-4 text-teal">Sale Items</h3>
-              <table class="enhanced-table" role="grid" aria-label="Items table">
-                <thead>
-                  <tr>
-                    <th scope="col">Product</th>
-                    <th scope="col">Unit Price (KES)</th>
-                    <th scope="col">Qty</th>
-                    <th scope="col">Line Total (KES)</th>
-                    <th scope="col">Action</th>
-                  </tr>
-                </thead>
-                <tbody id="items">
-                  <tr class="empty-state" id="empty-row-placeholder">
-                    <td colspan="5">Click search to add your first item...</td>
-                  </tr>
-                </tbody>
-                <tfoot class="table-footer">
-                  <tr>
-                    <td colspan="3" class="text-right">Grand Total:</td>
-                    <td id="total" class="text-teal-600 font-bold text-lg" colspan="2">KES 0.00</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-
-          <!-- Notes -->
-          <div class="mb-8">
-            <label for="{{ form.notes.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">Notes (Optional)</label>
-            {{ form.notes }}
-          </div>
-
-          <!-- Actions (Email Button Removed) -->
-          <div class="flex flex-col sm:flex-row gap-4 justify-end items-center pt-6 border-t border-gray-200">
-            <button type="submit" class="sleek-btn btn-primary flex-1 sm:flex-none">
-              <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
-              Record Sale
-            </button>
-          </div>
-        </form>
-      </div>
+<div class="dashboard-container container mx-auto px-4">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert-error">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+  {% if form.non_field_errors %}
+    <div class="error-msg">
+      {{ form.non_field_errors }}
     </div>
+  {% endif %}
+  {% if form.errors %}
+    <div class="error-msg">
+      {% for field, errors in form.errors.items %}
+        {% if field != '__all__' %}
+          <p>{{ field|title }}: {{ errors.0 }}</p>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
 
-    <!-- Quick Actions Sidebar -->
-    <div class="lg:col-span-1">
-      <div class="search-panel sticky top-8 h-fit" role="region" aria-label="Quick product search">
-        <h4 class="text-lg font-bold text-teal-700 mb-6 flex items-center gap-2">
-          <i data-lucide="search" class="w-5 h-5"></i>
-          Quick Add
-        </h4>
-        <div class="space-y-4">
-          <div>
-            <input type="text" id="product-search" class="search-input" placeholder="Search products..." autocomplete="off" aria-label="Search for products to add">
-            <div id="search-results" class="mt-2 space-y-1 max-h-60 overflow-y-auto" role="listbox" style="display: none;"></div>
-          </div>
-          <div class="text-center py-4 text-sm text-gray-500">
-            {% if preselected_product %}
-              <p>Preselected: {{ preselected_product.name }}</p>
-            {% else %}
-              <p>Scan or type to add items</p>
-            {% endif %}
-          </div>
+  <form method="POST" id="sale-form">
+    {% csrf_token %}
+
+    <!-- Customer Information Card -->
+    <div class="card card-basic mb-6">
+      <h3 class="text-lg font-semibold text-var(--darkgreen) mb-4">Customer Information</h3>
+      
+      {{ form.branch.as_hidden }}
+      
+      <div class="customer-fields">
+        <div class="form-group">
+          <label for="{{ form.customer_phone.id_for_label }}">Customer Phone</label>
+          <input type="text" name="{{ form.customer_phone.name }}" value="{{ form.customer_phone.value|default:'' }}" class="customer-visible-border" maxlength="30">
+          {% if form.customer_phone.errors %}
+            <span class="error-text">{{ form.customer_phone.errors.0 }}</span>
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.customer_name.id_for_label }}">Customer Name</label>
+          <input type="text" name="{{ form.customer_name.name }}" value="{{ form.customer_name.value|default:'' }}" class="customer-visible-border" maxlength="200">
+          {% if form.customer_name.errors %}
+            <span class="error-text">{{ form.customer_name.errors.0 }}</span>
+          {% endif %}
         </div>
       </div>
     </div>
-  </div>
+
+    <!-- Items Card -->
+    <div class="card card-items mb-6">
+      <h3 class="text-lg font-semibold text-var(--darkgreen) mb-4">Sale Items</h3>
+      <div id="js-error" class="js-error"></div>
+      <button type="button" class="add-item-btn" onclick="addItemRow()">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+        Add Item
+      </button>
+      <div class="table-container">
+        <table id="items-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Unit Price (KSh)</th>
+              <th>Quantity</th>
+              <th>Available Stock</th>
+              <th>Line Total (KSh)</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="items-tbody">
+            <!-- Dynamic rows will be added here -->
+          </tbody>
+        </table>
+      </div>
+      <div class="grand-total">
+        Total: <span id="grand-total-val">KSh 0.00</span>
+      </div>
+    </div>
+
+    <!-- Hidden Notes Field -->
+    <div style="display: none;">
+      {{ form.notes }}
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <a href="{% url 'pos:dashboard' %}" class="btn-secondary">Cancel</a>
+      <button type="submit" class="btn-primary" id="submit-btn" disabled>Complete Sale</button>
+    </div>
+  </form>
 </div>
 
 <script>
-  // Lucide Icons
+  // Render Lucide icons
   lucide.createIcons();
 
-  // Existing JS functionality retained
-  const products = [
-    {% for p in products %}
-      { id: {{ p.id }}, name: "{{ p.name|escapejs }}", price: {{ p.price }}, min_price: {{ p.min_price }} }{% if not forloop.last %},{% endif %}
+  let itemIndex = 0;
+  let debounceTimer;
+  const DEBOUNCE_DELAY = 300; // ms
+
+  // Precompute products array for efficient filtering
+  const productsArray = [
+    {% for product in products %}
+      { id: {{ product.id }}, name: "{{ product.name|escapejs }}", price: {{ product.price }}, min_price: {{ product.min_price }} }{% if not forloop.last %},{% endif %}
     {% endfor %}
   ];
 
-  let itemIndex = {% if preselected_product %}1{% else %}0{% endif %};
-  const itemsContainer = document.getElementById('items');
-  const totalEl = document.getElementById('total');
-  const emptyRowPlaceholderHtml = `
-    <tr class="empty-state" id="empty-row-placeholder">
-      <td colspan="5">Click search to add your first item...</td>
-    </tr>
-  `;
-  let total = 0.0;
+  const stockMap = new Map();
 
-  function updatePlaceholder() {
-    const currentPlaceholder = document.getElementById('empty-row-placeholder');
-    if (itemsContainer.querySelectorAll('.sale-item-row').length === 0) {
-      if (!currentPlaceholder) {
-        itemsContainer.innerHTML = emptyRowPlaceholderHtml;
-      }
-    } else {
-      if (currentPlaceholder) {
-        currentPlaceholder.remove();
-      }
-    }
-  }
+  // Get branch ID from the hidden form field
+  const branchInput = document.querySelector('input[name="branch"]');
+  const branchId = branchInput ? parseInt(branchInput.value) || 0 : 0;
 
-  function recalc() {
-    total = 0;
-    itemsContainer.querySelectorAll('.sale-item-row').forEach(function(row) {
-      const price = parseFloat(row.querySelector('.unit-price-input').value || 0);
-      const qty = parseInt(row.querySelector('.qty-input').value || 0, 10);
-      const line = price * qty;
-      row.querySelector('.line-total').innerText = 'KES ' + line.toFixed(2);
-      total += line;
-    });
-    totalEl.innerText = 'KES ' + total.toFixed(2);
-    updatePlaceholder();
-  }
-
-  function addItem(id, name, price, minprice, qty = 1) {
-    const tr = document.createElement('tr');
-    tr.className = 'sale-item-row transition-all duration-200';
-    tr.setAttribute('role', 'row');
-    tr.innerHTML = `
-      <td class="font-semibold text-teal-700">${name}</td>
-      <td class="text-right">
-        <div class="flex flex-col items-end gap-1">
-          <div class="flex items-center justify-end gap-1">
-            <span class="text-gray-500 text-xs">KES</span>
-            <input type="hidden" name="item-${itemIndex}-product_id" value="${id}">
-            <input name="item-${itemIndex}-unit_price" class="unit-price-input table-sleek-input" value="${price.toFixed(2)}" min="${minprice}" step="0.01" placeholder="0.00" style="text-align: right; width: 80px; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 4px; font-family: inherit; font-size: 14px; background: white; transition: border-color 0.3s, box-shadow 0.3s; min-width: 60px;">
-          </div>
-          <span class="text-xs text-gray-500">Min: ${minprice.toFixed(2)}</span>
-        </div>
-      </td>
-      <td class="text-right">
-        <input name="item-${itemIndex}-qty" class="qty-input table-sleek-input" type="number" min="1" value="${qty}" step="1" placeholder="1" style="text-align: right; width: 80px; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 4px; font-family: inherit; font-size: 14px; background: white; transition: border-color 0.3s, box-shadow 0.3s; min-width: 60px;">
-      </td>
-      <td class="line-total text-teal-600 font-bold">KES ${(price * qty).toFixed(2)}</td>
-      <td class="text-center">
-        <button type="button" class="remove-item-btn" aria-label="Remove item">
-          <i data-lucide="trash-2" class="w-4 h-4 mr-1 inline"></i> Remove
-        </button>
-      </td>
-    `;
-    itemsContainer.appendChild(tr);
-
-    const unitPriceInput = tr.querySelector('.unit-price-input');
-    unitPriceInput.addEventListener('input', function() {
-      let val = parseFloat(this.value || 0);
-      if (val < minprice) {
-        this.value = minprice.toFixed(2);
-        val = minprice;
-      }
-      recalc();
-    });
-
-    tr.querySelector('.qty-input').addEventListener('input', function() {
-      if (parseInt(this.value) < 1) this.value = 1;
-      recalc();
-    });
-
-    const removeBtn = tr.querySelector('.remove-item-btn');
-    removeBtn.addEventListener('click', () => {
-      tr.style.opacity = '0';
-      tr.style.transform = 'translateX(-10px)';
-      setTimeout(() => {
-        tr.remove();
-        recalc();
-      }, 200);
-    });
-
-    itemIndex++;
-    recalc();
-    updatePlaceholder();
-  }
-
+  // Prefill if preselected
   {% if preselected_product %}
-    addItem({{ preselected_product.id }}, "{{ preselected_product.name|escapejs }}", {{ preselected_product.price }}, {{ preselected_product.min_price }});
+    addItemRow({{ preselected_product.id }});
   {% endif %}
 
-  document.addEventListener('DOMContentLoaded', () => {
-    recalc();
-    lucide.createIcons();
-  });
-
-  // Search functionality (retained and enhanced)
-  const searchInput = document.getElementById('product-search');
-  const searchResults = document.getElementById('search-results');
-  let selectedIndex = -1;
-  let debounceTimer;
-
-  searchInput.addEventListener('input', function() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      const term = this.value.toLowerCase().trim();
-      searchResults.innerHTML = '';
-      if (term.length < 1) {
-        searchResults.style.display = 'none';
-        return;
-      }
-      const filtered = products.filter(p => p.name.toLowerCase().includes(term));
-      if (filtered.length === 0) {
-        searchResults.innerHTML = '<div class="p-3 text-gray-500 text-center">No products found</div>';
-        searchResults.style.display = 'block';
-        return;
-      }
-      filtered.forEach((p, index) => {
-        const div = document.createElement('div');
-        div.className = 'search-result-item';
-        div.setAttribute('role', 'option');
-        div.setAttribute('aria-selected', index === 0 ? 'true' : 'false');
-        div.innerHTML = `
-          <div>
-            <div class="font-semibold text-teal-700">${p.name}</div>
-            <div class="text-xs text-gray-500">KES ${p.price.toFixed(2)}</div>
-          </div>
-          <i data-lucide="plus" class="w-4 h-4 text-teal-500"></i>
-        `;
-        div.addEventListener('click', () => {
-          addItem(p.id, p.name, p.price, p.min_price);
-          this.value = '';
-          searchResults.style.display = 'none';
-          selectedIndex = -1;
-        });
-        searchResults.appendChild(div);
-      });
-      searchResults.style.display = 'block';
-      selectedIndex = -1;
-    }, 250);
-  });
-
-  // Keyboard navigation (retained)
-  searchInput.addEventListener('keydown', function(e) {
-    const items = searchResults.querySelectorAll('.search-result-item');
-    if (items.length === 0) return;
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
-      updateSelection(items);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      selectedIndex = Math.max(selectedIndex - 1, 0);
-      updateSelection(items);
-    } else if (e.key === 'Enter' && selectedIndex >= 0) {
-      e.preventDefault();
-      items[selectedIndex].click();
-    } else if (e.key === 'Escape') {
-      searchResults.style.display = 'none';
-      this.value = '';
-      selectedIndex = -1;
-    }
-  });
-
-  function updateSelection(items) {
-    items.forEach((item, index) => {
-      const isSelected = index === selectedIndex;
-      item.setAttribute('aria-selected', isSelected);
-      if (isSelected) {
-        item.classList.add('bg-teal-50', 'border-teal-200');
-        item.focus();
-        item.scrollIntoView({ block: 'nearest' });
-      } else {
-        item.classList.remove('bg-teal-50', 'border-teal-200');
-      }
-    });
+  // Debounce utility
+  function debounce(func, delay) {
+    return function(...args) {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => func.apply(this, args), delay);
+    };
   }
 
-  // Close search on outside click
-  document.addEventListener('click', function(e) {
-    if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-      searchResults.style.display = 'none';
-      selectedIndex = -1;
+  function showError(element, message, duration = 5000) {
+    const errorDiv = document.getElementById('js-error');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    if (duration > 0) {
+      setTimeout(() => { errorDiv.style.display = 'none'; }, duration);
+    }
+  }
+
+  // Preload all stock levels for the branch
+  async function preloadStock() {
+    if (!branchId) return;
+    try {
+      const response = await fetch(`/ajax/stock/?branch_id=${branchId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.stocks) {
+          data.stocks.forEach(item => {
+            stockMap.set(item.product_id, item.available);
+          });
+        } else if (data.available !== undefined) {
+          // In case it returns single, but shouldn't
+          console.warn('Unexpected single stock response in preload');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to preload stock:', error);
+    }
+  }
+
+  async function addItemRow(productId = null) {
+    try {
+      const tbody = document.getElementById('items-tbody');
+      if (!tbody) throw new Error('Table body not found');
+      
+      const row = document.createElement('tr');
+      row.id = `item-row-${itemIndex}`;
+      row.innerHTML = `
+        <td>
+          <select name="item-${itemIndex}-product_id" class="product-select editable-field-border" data-index="${itemIndex}" required>
+            <option value="">Select a product...</option>
+          </select>
+        </td>
+        <td>
+          <input type="number" name="item-${itemIndex}-unit_price" step="0.01" class="price-input editable-field-border" data-index="${itemIndex}" value="0" min="0" required>
+          <span class="error-text" id="price-error-${itemIndex}"></span>
+        </td>
+        <td>
+          <input type="number" name="item-${itemIndex}-qty" min="1" class="qty-input editable-field-border" data-index="${itemIndex}" value="1" required>
+          <span class="error-text" id="qty-error-${itemIndex}"></span>
+        </td>
+        <td><span id="available-stock-${itemIndex}">Select Product</span><div class="stock-warning" id="stock-warning-${itemIndex}"></div></td>
+        <td><span class="line-total" id="line-total-${itemIndex}">KSh 0.00</span></td>
+        <td><button type="button" class="remove-row" data-index="${itemIndex}">×</button></td>
+      `;
+      tbody.appendChild(row);
+
+      const select = row.querySelector('.product-select');
+      const priceInput = row.querySelector('.price-input');
+      const qtyInput = row.querySelector('.qty-input');
+
+      // Populate options
+      productsArray.forEach(product => {
+        const option = document.createElement('option');
+        option.value = product.id;
+        option.textContent = `${product.name} - KSh ${product.price.toFixed(2)}`;
+        option.dataset.price = product.price;
+        option.dataset.minPrice = product.min_price;
+        select.appendChild(option);
+      });
+
+      // Set initial selection if provided
+      if (productId) {
+        select.value = productId;
+        setProductDetails(select);
+        await validateStock(itemIndex);
+      }
+
+      // Event listeners for realtime updates
+      select.addEventListener('change', function() {
+        setProductDetails(this);
+        validateStock(itemIndex);
+        calcLineTotal(itemIndex);
+        updateGrandTotal();
+        validateForm();
+      });
+
+      // Realtime price validation and calculation
+      priceInput.addEventListener('input', () => {
+        validatePrice.call(priceInput);
+      });
+
+      // Realtime quantity validation, stock check, and calculation
+      qtyInput.addEventListener('input', () => {
+        validateStock(itemIndex);
+      });
+
+      itemIndex++;
+      calcLineTotal(itemIndex - 1);
+      updateGrandTotal();
+      validateForm();
+    } catch (error) {
+      console.error('Error adding row:', error);
+      showError(null, 'Failed to add item row. Please refresh and try again.', 3000);
+    }
+  }
+
+  function setProductDetails(select) {
+    const index = parseInt(select.dataset.index);
+    const selectedOption = select.options[select.selectedIndex];
+    const priceInput = document.querySelector(`input[name="item-${index}-unit_price"]`);
+    const stockSpan = document.getElementById(`available-stock-${index}`);
+
+    if (selectedOption.value) {
+      priceInput.value = selectedOption.dataset.price;
+      priceInput.min = selectedOption.dataset.minPrice;
+      validatePrice.call(priceInput);
+    } else {
+      priceInput.value = '';
+      priceInput.min = 0;
+      if (stockSpan) {
+        stockSpan.innerHTML = '<span style="color: #6b7280;">Select Product</span>';
+      }
+      document.getElementById(`price-error-${index}`).textContent = '';
+      priceInput.classList.remove('field-error');
+      calcLineTotal(index);
+    }
+    updateGrandTotal();
+    validateForm();
+  }
+
+  function validatePrice() {
+    const index = parseInt(this.dataset.index);
+    const priceError = document.getElementById(`price-error-${index}`);
+    const minPrice = parseFloat(this.min) || 0;
+    const currentPrice = parseFloat(this.value) || 0;
+
+    if (currentPrice < minPrice) {
+      const message = `Price cannot be below KSh ${minPrice.toFixed(2)}`;
+      if (priceError) priceError.textContent = message;
+      this.classList.add('field-error');
+    } else {
+      if (priceError) priceError.textContent = '';
+      this.classList.remove('field-error');
+    }
+    calcLineTotal(index);
+    updateGrandTotal();
+    validateForm();
+  }
+
+  async function validateStock(index) {
+    try {
+      const select = document.querySelector(`select[name="item-${index}-product_id"]`);
+      const productId = parseInt(select.value);
+      const qtyInput = document.querySelector(`input[name="item-${index}-qty"]`);
+      const stockSpan = document.getElementById(`available-stock-${index}`);
+      const warningDiv = document.getElementById(`stock-warning-${index}`);
+      const qtyError = document.getElementById(`qty-error-${index}`);
+
+      if (!productId || !branchId) {
+        if (stockSpan) {
+          const msg = !productId ? 'Select Product' : 'No Branch';
+          stockSpan.innerHTML = `<span style="color: #6b7280;">${msg}</span>`;
+        }
+        if (warningDiv) warningDiv.textContent = '';
+        if (qtyError) qtyError.textContent = '';
+        qtyInput.classList.remove('field-error');
+        calcLineTotal(index);
+        updateGrandTotal();
+        validateForm();
+        return;
+      }
+
+      let available = stockMap.get(productId);
+      let fetched = false;
+
+      if (available === undefined) {
+        // Fallback to fetch if not preloaded
+        if (stockSpan) {
+          stockSpan.innerHTML = '<span class="stock-loading">Loading stock...</span>';
+        }
+        const response = await fetch(`/ajax/stock/?product_id=${productId}&branch_id=${branchId}`);
+        if (!response.ok) {
+          if (response.status === 404) {
+            available = 0;
+          } else {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+        } else {
+          const data = await response.json();
+          available = data.available || 0;
+          stockMap.set(productId, available);
+          fetched = true;
+        }
+      }
+
+      if (stockSpan) {
+        if (available === 0) {
+          stockSpan.innerHTML = '<span style="color: #ef4444; font-weight: bold;">Out of Stock</span>';
+        } else {
+          stockSpan.textContent = available;
+          stockSpan.style.color = '';
+          stockSpan.style.fontWeight = '';
+          if (fetched) {
+            stockSpan.classList.remove('stock-loading');
+          }
+        }
+      }
+
+      const qty = parseInt(qtyInput.value) || 0;
+      if (qty > available && available >= 0) {
+        const message = `Quantity exceeds available stock (${available}).`;
+        if (warningDiv) warningDiv.textContent = `Warning: Only ${available} available.`;
+        if (qtyError) qtyError.textContent = message;
+        qtyInput.classList.add('field-error');
+      } else if (qty < 1) {
+        if (qtyError) qtyError.textContent = 'Quantity must be at least 1.';
+        qtyInput.classList.add('field-error');
+        if (warningDiv) warningDiv.textContent = '';
+      } else {
+        if (warningDiv) warningDiv.textContent = '';
+        if (qtyError) qtyError.textContent = '';
+        qtyInput.classList.remove('field-error');
+      }
+    } catch (error) {
+      console.error('Stock validation failed:', error);
+      const stockSpan = document.getElementById(`available-stock-${index}`);
+      const warningDiv = document.getElementById(`stock-warning-${index}`);
+      const qtyError = document.getElementById(`qty-error-${index}`);
+      const qtyInput = document.querySelector(`input[name="item-${index}-qty"]`);
+      if (stockSpan) stockSpan.innerHTML = '<span style="color: #ef4444;">Error loading stock</span>';
+      if (warningDiv) warningDiv.textContent = '';
+      if (qtyError) qtyError.textContent = '';
+      qtyInput.classList.remove('field-error');
+      if (!error.message.includes('404') && !error.message.includes('Network')) {
+        showError(null, `Stock check error: ${error.message}. Please check connection.`, 5000);
+      }
+    }
+    // Always update totals and form state after validation
+    calcLineTotal(index);
+    updateGrandTotal();
+    validateForm();
+  }
+
+  function calcLineTotal(index) {
+    try {
+      const priceInput = document.querySelector(`input[name="item-${index}-unit_price"]`);
+      const qtyInput = document.querySelector(`input[name="item-${index}-qty"]`);
+      const lineTotalSpan = document.getElementById(`line-total-${index}`);
+      if (!lineTotalSpan) return;
+
+      const price = parseFloat(priceInput.value) || 0;
+      const qty = parseInt(qtyInput.value) || 0;
+      const total = (price * qty).toFixed(2);
+      lineTotalSpan.textContent = `KSh ${total}`;
+    } catch (error) {
+      console.error('Error calculating line total:', error);
+    }
+  }
+
+  function updateGrandTotal() {
+    try {
+      let grandTotal = 0;
+      const rows = document.querySelectorAll('#items-tbody tr');
+      rows.forEach((row, idx) => {
+        const lineTotalSpan = document.getElementById(`line-total-${idx}`);
+        if (lineTotalSpan) {
+          grandTotal += parseFloat(lineTotalSpan.textContent.replace('KSh ', '')) || 0;
+        }
+      });
+      const formattedTotal = grandTotal.toFixed(2);
+      document.getElementById('grand-total-val').textContent = `KSh ${formattedTotal}`;
+    } catch (error) {
+      console.error('Error updating grand total:', error);
+    }
+  }
+
+  function removeRow(button) {
+    try {
+      const index = parseInt(button.dataset.index);
+      const row = document.getElementById(`item-row-${index}`);
+      if (row) {
+        row.remove();
+      }
+      updateGrandTotal();
+      validateForm();
+    } catch (error) {
+      console.error('Error removing row:', error);
+      showError(null, 'Failed to remove row.', 2000);
+    }
+  }
+
+  function validateForm() {
+    try {
+      const rows = document.querySelectorAll('#items-tbody tr');
+      const submitBtn = document.getElementById('submit-btn');
+      if (!submitBtn) return;
+
+      let hasErrors = false;
+      let hasStockIssues = false;
+
+      rows.forEach((row, idx) => {
+        const productSelect = row.querySelector(`select[name="item-${idx}-product_id"]`);
+        const priceInput = row.querySelector('.price-input');
+        const qtyInput = row.querySelector('.qty-input');
+        const priceError = document.getElementById(`price-error-${idx}`);
+        const qtyError = document.getElementById(`qty-error-${idx}`);
+        const warning = document.getElementById(`stock-warning-${idx}`);
+
+        if (!productSelect.value) hasErrors = true;
+        if (parseFloat(priceInput.value) < parseFloat(priceInput.min) && !priceError.textContent) {
+          validatePrice.call(priceInput);
+          hasErrors = true;
+        }
+        if (qtyError && qtyError.textContent) hasErrors = true;
+        if (warning && warning.textContent && warning.textContent.includes('Warning')) hasStockIssues = true;
+      });
+
+      const grandTotal = parseFloat(document.getElementById('grand-total-val').textContent.replace('KSh ', '')) || 0;
+      const isValid = rows.length > 0 && grandTotal > 0 && !hasErrors && !hasStockIssues;
+      submitBtn.disabled = !isValid;
+      submitBtn.title = isValid ? '' : 'Please fix all errors and warnings before submitting';
+    } catch (error) {
+      console.error('Form validation error:', error);
+      showError(null, 'Validation error occurred.', 3000);
+    }
+  }
+
+  // Event delegation for dynamic rows
+  document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('remove-row')) {
+      removeRow(e.target);
     }
   });
+
+  // Debounced global validation on input/change (for any other fields)
+  const debouncedValidateForm = debounce(validateForm, DEBOUNCE_DELAY);
+  document.addEventListener('input', debouncedValidateForm);
+  document.addEventListener('change', debouncedValidateForm);
+
+  // Form submit handler for final check
+  document.getElementById('sale-form').addEventListener('submit', (e) => {
+    if (document.getElementById('submit-btn').disabled) {
+      e.preventDefault();
+      showError(null, 'Form has errors. Please review and correct.', 4000);
+    }
+  });
+
+  // Preload stock on load
+  preloadStock();
+
+  // Initial validation
+  validateForm();
 </script>
 {% endblock %}

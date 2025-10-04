@@ -401,11 +401,9 @@
           <tr>
             <th class="sortable" data-column="name">Product <span class="sort-indicator">↕</span></th>
             <th class="sortable" data-column="category">Category <span class="sort-indicator">↕</span></th>
-            <th>Description</th>
             <th class="sortable" data-column="price">Selling Price <span class="sort-indicator">↕</span></th>
             <th class="sortable" data-column="stock">Stock Level <span class="sort-indicator">↕</span></th>
             <th class="sortable" data-column="min_price">Min Price <span class="sort-indicator">↕</span></th>
-            <th class="sortable" data-column="created">Created <span class="sort-indicator">↕</span></th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -422,19 +420,16 @@
                 data-sort-category="{{ product.category|lower }}" 
                 data-sort-price="{{ product.price }}" 
                 data-sort-stock="{{ total_stock }}" 
-                data-sort-minprice="{{ product.min_price }}" 
-                data-sort-created="{{ product.created_at|date:'U' }}"
+                data-sort-minprice="{{ product.min_price }}"
                 class="{% if total_stock <= 10 %}low-stock{% endif %}">
                 <td>{{ product.name }}</td>
                 <td>{{ product.category }}</td>
-                <td>{{ product.description|truncatechars:50 }}</td>
                 <td>KSh {{ product.price|floatformat:2 }}</td>
                 <td>
                   {{ total_stock }}
                   {% if total_stock <= 10 %}<span class="alert-badge ml-2">Low</span>{% endif %}
                 </td>
                 <td>KSh {{ product.min_price|floatformat:2 }}</td>
-                <td>{{ product.created_at|date:"M d, Y" }}</td>
                 <td>
                   <button class="sell-btn" onclick="quickSell({{ product.id }})" aria-label="Quick sell {{ product.name }}">
                     <i data-lucide="shopping-cart" class="w-3 h-3"></i>
@@ -500,10 +495,7 @@
         currentRows.sort((a, b) => {
           let aVal = a.dataset[`sort-${column}`] || '';
           let bVal = b.dataset[`sort-${column}`] || '';
-          if (column === 'created') {
-            aVal = parseInt(aVal) || 0;
-            bVal = parseInt(bVal) || 0;
-          } else if (['price', 'stock', 'min_price'].includes(column)) {
+          if (['price', 'stock', 'min_price'].includes(column)) {
             aVal = parseFloat(aVal) || 0;
             bVal = parseFloat(bVal) || 0;
           } else {

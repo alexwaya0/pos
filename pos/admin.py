@@ -4,6 +4,8 @@ from django.db.models import Sum
 from django.core.exceptions import ValidationError
 from django import forms
 from django.utils.html import format_html # Used for color-coding in list display
+from django.contrib.auth import get_user_model
+from django.contrib.auth.admin import UserAdmin
 from .models import (
     Branch,
     Supplier,
@@ -12,8 +14,11 @@ from .models import (
     Customer,
     Sale,
     SaleItem,
+    UserActivityLog,
 )
 from decimal import Decimal
+
+User = get_user_model()
 
 # --- Branding Customization: Amigo POS™ ---
 admin.site.site_header = "Amigo POS™ Administration"
@@ -192,3 +197,46 @@ class SaleAdmin(admin.ModelAdmin):
         }),
         ("Timestamp", {"fields": ("created_at",), 'classes': ('collapse',)}),
     )
+
+class CustomUserAdmin(UserAdmin):
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        ('Roles', {
+            'fields': ('groups',),
+            'description': 'Assign roles: Cashier, Manager, or Admin by selecting the appropriate group.',
+        }),
+    )
+
+    # Customize fieldsets to move 'groups' to a new fieldset
+    original_fieldsets = UserAdmin.fieldsets
+    permissions_fieldset = list(original_fieldsets[2])  # Permissions fieldset
+    permissions_dict = permissions_fieldset[1]
+    permissions_fields = list(permissions_dict['fields'])
+    permissions_fields.remove('groups')
+    permissions_dict['fields'] = tuple(permissions_fields)
+    permissions_fieldset = tuple(permissions_fieldset)
+
+    roles_fieldset = ('Roles', {
+        'fields': ('groups',),
+        'description': 'Assign roles: Cashier, Manager, or Admin by selecting the appropriate group.',
+    })
+
+    fieldsets = (
+        original_fieldsets[0],
+        original_fieldsets[1],
+        permissions_fieldset,
+        roles_fieldset,
+        original_fieldsets[3],
+    )
+
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)
+
+@admin.register(UserActivityLog)
+class UserActivityLogAdmin(admin.ModelAdmin):
+    list_display = ('user', 'action', 'timestamp', 'ip_address')
+    list_filter = ('action', 'timestamp')
+    search_fields = ('user__username', 'user__first_name', 'user__last_name')
+    date_hierarchy = 'timestamp'
+    readonly_fields = ('timestamp',)
+    ordering = ('-timestamp',)
+    list_per_page = 50
