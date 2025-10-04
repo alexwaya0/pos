@@ -95,8 +95,13 @@
     transition: all 0.3s ease;
     font-size: 0.875rem;
   }
-  .customer-visible-border, .editable-field-border {
+  .customer-visible-border {
     border: 1px solid #d1d5db !important;
+  }
+  .editable-field-border {
+    border: 1px solid #d1d5db !important;
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(10px) !important;
   }
   .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
     border-color: var(--gold);
@@ -133,6 +138,10 @@
     padding: 12px;
     text-align: left;
     border-bottom: 1px solid #f1f5f9;
+  }
+  /* Prevent header wrapping */
+  th {
+    white-space: nowrap;
   }
   /* Realistic column widths */
   th:nth-child(1), td:nth-child(1) { width: 35%; } /* Product - widest for names */
@@ -356,7 +365,7 @@
   .search-input {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid var(--glass-border);
+    border: 1px solid #d1d5db;
     border-radius: 8px;
     background: var(--glass-bg);
     backdrop-filter: blur(10px);
