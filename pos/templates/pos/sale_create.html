@@ -134,6 +134,13 @@
     text-align: left;
     border-bottom: 1px solid #f1f5f9;
   }
+  /* Realistic column widths */
+  th:nth-child(1), td:nth-child(1) { width: 35%; } /* Product - widest for names */
+  th:nth-child(2), td:nth-child(2) { width: 15%; } /* Unit Price */
+  th:nth-child(3), td:nth-child(3) { width: 10%; } /* Quantity - compact */
+  th:nth-child(4), td:nth-child(4) { width: 15%; } /* Available Stock */
+  th:nth-child(5), td:nth-child(5) { width: 15%; } /* Line Total */
+  th:nth-child(6), td:nth-child(6) { width: 10%; } /* Action - narrow */
   th {
     background-color: var(--darkgreen);
     color: #ffffff;
@@ -218,6 +225,11 @@
     font-size: 0.75rem;
     font-weight: bold;
     border: 1px solid #fecaca;
+  }
+  /* Editable fields optimization: full width, touch-friendly */
+  .editable-field-border {
+    width: 100%;
+    box-sizing: border-box;
   }
   .add-item-btn {
     background: linear-gradient(135deg, var(--gold), var(--gold-dark));
@@ -336,6 +348,60 @@
     display: none;
     animation: fadeInError 0.3s ease-out;
   }
+  /* Searchable Select Styles */
+  .searchable-select {
+    position: relative;
+    width: 100%;
+  }
+  .search-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+  }
+  .search-input:focus {
+    border-color: var(--gold);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+  }
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  .product-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .product-option {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f9fafb;
+    transition: background-color 0.2s ease;
+  }
+  .product-option:hover {
+    background-color: #f3f4f6;
+  }
+  .product-option.selected {
+    background-color: #e5e7eb;
+  }
+  .product-option:last-child {
+    border-bottom: none;
+  }
   /* Responsive */
   @media (max-width: 768px) {
     .customer-fields {
@@ -343,15 +409,27 @@
     }
     .customer-fields .form-group {
       min-width: auto;
+      flex-basis: 100%;
     }
     table {
-      min-width: 600px;
+      min-width: 500px; /* Tighter for mobile */
+    }
+    th, td {
+      padding: 8px 6px; /* Reduced padding for compactness */
+    }
+    .editable-field-border {
+      padding: 8px 10px; /* Touch-friendly on mobile */
+      font-size: 1rem; /* Larger text for inputs */
     }
     .actions {
       flex-direction: column;
     }
     .btn-primary, .btn-secondary {
       width: 100%;
+    }
+    .dropdown-menu {
+      max-height: 150px;
+      font-size: 0.875rem;
     }
   }
 </style>
@@ -516,15 +594,16 @@
   // Update cart quantities and refresh all relevant stock displays
   function updateCartQuantitiesAndStocks() {
     const rows = document.querySelectorAll('#items-tbody tr');
+    cartQuantities.clear(); // Reset and recalculate
     rows.forEach((row, idx) => {
-      const productSelect = row.querySelector(`select[name="item-${idx}-product_id"]`);
+      const hiddenInput = row.querySelector(`input[name="item-${idx}-product_id"]`);
       const qtyInput = row.querySelector(`input[name="item-${idx}-qty"]`);
-      const productId = parseInt(productSelect.value);
+      const productId = parseInt(hiddenInput ? hiddenInput.value : 0);
       const qty = parseInt(qtyInput.value) || 0;
 
-      if (productId) {
+      if (productId && qty > 0) {
         const currentTotal = cartQuantities.get(productId) || 0;
-        cartQuantities.set(productId, currentTotal + qty); // This will be overwritten per row, but since we loop all, it's fine
+        cartQuantities.set(productId, currentTotal + qty);
       }
     });
 
@@ -546,9 +625,13 @@
       row.id = `item-row-${itemIndex}`;
       row.innerHTML = `
         <td>
-          <select name="item-${itemIndex}-product_id" class="product-select editable-field-border" data-index="${itemIndex}" required>
-            <option value="">Select a product...</option>
-          </select>
+          <div class="searchable-select" data-index="${itemIndex}">
+            <input type="hidden" name="item-${itemIndex}-product_id" class="product-hidden">
+            <input type="text" class="search-input editable-field-border" placeholder="Type to search products...">
+            <div class="dropdown-menu" style="display: none;">
+              <ul class="product-list"></ul>
+            </div>
+          </div>
         </td>
         <td>
           <input type="number" name="item-${itemIndex}-unit_price" step="0.01" class="price-input editable-field-border" data-index="${itemIndex}" value="0" min="0" required>
@@ -564,32 +647,121 @@
       `;
       tbody.appendChild(row);
 
-      const select = row.querySelector('.product-select');
+      const searchableDiv = row.querySelector('.searchable-select');
+      const hiddenInput = searchableDiv.querySelector('.product-hidden');
+      const searchInput = searchableDiv.querySelector('.search-input');
+      const dropdown = searchableDiv.querySelector('.dropdown-menu');
+      const list = searchableDiv.querySelector('.product-list');
       const priceInput = row.querySelector('.price-input');
       const qtyInput = row.querySelector('.qty-input');
 
       // Populate options
       productsArray.forEach(product => {
-        const option = document.createElement('option');
-        option.value = product.id;
-        option.textContent = `${product.name} - KSh ${product.price.toFixed(2)}`;
-        option.dataset.price = product.price;
-        option.dataset.minPrice = product.min_price;
-        select.appendChild(option);
+        const li = document.createElement('li');
+        li.className = 'product-option';
+        li.dataset.id = product.id;
+        li.dataset.name = product.name;
+        li.dataset.price = product.price;
+        li.dataset.minPrice = product.min_price;
+        li.textContent = `${product.name} - KSh ${product.price.toFixed(2)}`;
+        list.appendChild(li);
+      });
+
+      // Event listeners for dropdown
+      function showDropdown() {
+        dropdown.style.display = 'block';
+      }
+
+      function hideDropdown() {
+        dropdown.style.display = 'none';
+      }
+
+      searchInput.addEventListener('focus', showDropdown);
+
+      searchInput.addEventListener('blur', () => {
+        setTimeout(hideDropdown, 150);
+      });
+
+      searchInput.addEventListener('input', function() {
+        const index = parseInt(searchableDiv.dataset.index);
+        const query = this.value.toLowerCase();
+        list.querySelectorAll('.product-option').forEach(opt => {
+          const fullText = opt.textContent.toLowerCase();
+          if (fullText.includes(query)) {
+            opt.style.display = 'block';
+          } else {
+            opt.style.display = 'none';
+          }
+        });
+        showDropdown();
+
+        if (this.value === '') {
+          hiddenInput.value = '';
+          priceInput.value = '';
+          priceInput.min = 0;
+          const priceError = document.getElementById(`price-error-${index}`);
+          if (priceError) {
+            priceError.textContent = '';
+            priceError.setAttribute('data-tooltip', '');
+          }
+          priceInput.classList.remove('field-error');
+          const stockSpan = document.getElementById(`available-stock-${index}`);
+          if (stockSpan) stockSpan.innerHTML = '<span style="color: #6b7280;">Select Product</span>';
+          const stockError = document.getElementById(`stock-error-${index}`);
+          if (stockError) {
+            stockError.textContent = '';
+            stockError.setAttribute('data-tooltip', '');
+          }
+          const qtyError = document.getElementById(`qty-error-${index}`);
+          if (qtyError) {
+            qtyError.textContent = '';
+            qtyError.setAttribute('data-tooltip', '');
+          }
+          qtyInput.classList.remove('field-error');
+          list.querySelectorAll('.product-option').forEach(o => o.classList.remove('selected'));
+          calcLineTotal(index);
+          updateCartQuantitiesAndStocks();
+        }
+      });
+
+      list.addEventListener('click', function(e) {
+        if (e.target.classList.contains('product-option')) {
+          const opt = e.target;
+          const id = opt.dataset.id;
+          const fullText = opt.textContent;
+          const price = parseFloat(opt.dataset.price);
+          const minPrice = parseFloat(opt.dataset.minPrice);
+          const index = parseInt(searchableDiv.dataset.index);
+
+          hiddenInput.value = id;
+          searchInput.value = fullText;
+          list.querySelectorAll('.product-option').forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+          hideDropdown();
+
+          priceInput.value = price;
+          priceInput.min = minPrice;
+          validatePrice.call(priceInput);
+          calcLineTotal(index);
+          updateCartQuantitiesAndStocks();
+        }
       });
 
       // Set initial selection if provided
       if (productId) {
-        select.value = productId;
-        setProductDetails(select);
-        await validateStock(itemIndex);
+        const targetOpt = list.querySelector(`[data-id="${productId}"]`);
+        if (targetOpt) {
+          hiddenInput.value = productId;
+          searchInput.value = targetOpt.textContent;
+          list.querySelectorAll('.product-option').forEach(o => o.classList.remove('selected'));
+          targetOpt.classList.add('selected');
+          priceInput.value = parseFloat(targetOpt.dataset.price);
+          priceInput.min = parseFloat(targetOpt.dataset.minPrice);
+          validatePrice.call(priceInput);
+          calcLineTotal(itemIndex);
+          await validateStock(itemIndex);
+        }
       }
-
-      // Event listeners for realtime updates
-      select.addEventListener('change', function() {
-        setProductDetails(this);
-        updateCartQuantitiesAndStocks();  // Refresh global stock after selection
-      });
 
       // Realtime price validation and calculation
       priceInput.addEventListener('input', () => {
@@ -610,35 +782,6 @@
       console.error('Error adding row:', error);
       showError(null, 'Failed to add item row. Please refresh and try again.', 3000);
     }
-  }
-
-  function setProductDetails(select) {
-    const index = parseInt(select.dataset.index);
-    const selectedOption = select.options[select.selectedIndex];
-    const priceInput = document.querySelector(`input[name="item-${index}-unit_price"]`);
-    const stockSpan = document.getElementById(`available-stock-${index}`);
-    const stockError = document.getElementById(`stock-error-${index}`);
-
-    if (selectedOption.value) {
-      priceInput.value = selectedOption.dataset.price;
-      priceInput.min = selectedOption.dataset.minPrice;
-      validatePrice.call(priceInput);
-    } else {
-      priceInput.value = '';
-      priceInput.min = 0;
-      if (stockSpan) {
-        stockSpan.innerHTML = '<span style="color: #6b7280;">Select Product</span>';
-      }
-      if (stockError) {
-        stockError.textContent = '';
-        stockError.setAttribute('data-tooltip', '');
-      }
-      document.getElementById(`price-error-${index}`).textContent = '';
-      priceInput.classList.remove('field-error');
-      calcLineTotal(index);
-    }
-    updateGrandTotal();
-    validateForm();
   }
 
   function validatePrice() {
@@ -714,8 +857,8 @@
 
   async function validateStock(index) {
     try {
-      const select = document.querySelector(`select[name="item-${index}-product_id"]`);
-      const productId = parseInt(select.value);
+      const hiddenInput = document.querySelector(`input[name="item-${index}-product_id"]`);
+      const productId = parseInt(hiddenInput ? hiddenInput.value : 0);
       const qtyInput = document.querySelector(`input[name="item-${index}-qty"]`);
       const stockSpan = document.getElementById(`available-stock-${index}`);
       const stockError = document.getElementById(`stock-error-${index}`);
@@ -860,9 +1003,9 @@
       const row = document.getElementById(`item-row-${index}`);
       if (row) {
         // Remove contribution to cart qty
-        const productSelect = row.querySelector(`select[name="item-${index}-product_id"]`);
+        const hiddenInput = row.querySelector(`input[name="item-${index}-product_id"]`);
         const qtyInput = row.querySelector(`input[name="item-${index}-qty"]`);
-        const productId = parseInt(productSelect.value);
+        const productId = parseInt(hiddenInput ? hiddenInput.value : 0);
         const qty = parseInt(qtyInput.value) || 0;
         if (productId && qty > 0) {
           const currentTotal = cartQuantities.get(productId) || 0;
@@ -890,13 +1033,13 @@
       let hasStockIssues = false;
 
       rows.forEach((row, idx) => {
-        const productSelect = row.querySelector(`select[name="item-${idx}-product_id"]`);
+        const hiddenInput = row.querySelector(`input[name="item-${idx}-product_id"]`);
         const priceInput = row.querySelector('.price-input');
         const priceError = document.getElementById(`price-error-${idx}`);
         const qtyError = document.getElementById(`qty-error-${idx}`);
         const stockError = document.getElementById(`stock-error-${idx}`);
 
-        if (!productSelect.value) hasErrors = true;
+        if (!hiddenInput || !hiddenInput.value) hasErrors = true;
         if (parseFloat(priceInput.value) < parseFloat(priceInput.min) && !priceError.textContent) {
           validatePrice.call(priceInput);
           hasErrors = true;
